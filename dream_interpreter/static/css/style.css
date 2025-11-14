@@ -97,3 +97,49 @@ body {
     border-radius: 12px;
     cursor: pointer;
 }
+
+
+.date-divider {
+    text-align: center;
+    margin: 24px 0;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    position: relative;
+}
+
+.date-divider::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(148, 163, 184, 0.2);
+    z-index: 0;
+}
+
+.date-divider span {
+    background: var(--glass-bg);
+    padding: 0 12px;
+    position: relative;
+    z-index: 1;
+}
+
+.message-content {
+    margin-bottom: 6px;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-align: right;
+}
+
+.message.user .message-time {
+    color: #cbd5e1;
+}
+
+/* Обнови стили .message — убери padding снизу */
+.message {
+    padding: 16px 20px 8px 20px; /* меньше снизу, т.к. время отдельно */
+}

@@ -10,7 +10,7 @@ ALLOWED_HOSTS = []
 
 
 
-OPENROUTER_API_KEY = config('OPENROUTER_API_KEY', default='')
+TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN', default='8210635345:AAGKRadzTWU83Mtq6alWa2pwz8hRacLPYNE')
 
 INSTALLED_APPS = [
     'django.contrib.admin',

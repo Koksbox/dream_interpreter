@@ -2,11 +2,15 @@
 import json
 import requests
 from django.shortcuts import render, redirect
-from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import login
 from django.conf import settings
 from .models import User, DreamSession, Message
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.db.models import Prefetch
+
+
 
 # Системный промпт — психологический уклон
 SYSTEM_PROMPT = """
@@ -122,3 +126,69 @@ def send_message(request):
         return JsonResponse({'reply': bot_reply})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+
+
+
+def profile_view(request):
+    if not request.user.is_authenticated:
+        return redirect('landing')
+    return render(request, 'dreambot/profile.html', {'user': request.user})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def update_profile(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Не авторизован'}, status=401)
+
+    try:
+        data = json.loads(request.body)
+        name = data.get('name', '').strip() or None
+        birth_date_str = data.get('birth_date', '').strip() or None
+
+        # Валидация даты
+        birth_date = None
+        if birth_date_str:
+            try:
+                birth_date = datetime.strptime(birth_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return JsonResponse({'error': 'Неверный формат даты'}, status=400)
+
+        user = request.user
+        user.name = name
+        user.birth_date = birth_date
+        user.save()
+
+        return JsonResponse({'status': 'ok'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+def history_view(request):
+    if not request.user.is_authenticated:
+        return redirect('landing')
+
+    sessions = DreamSession.objects.filter(user=request.user).prefetch_related(
+        Prefetch('message_set', queryset=Message.objects.order_by('created_at'))
+    ).order_by('-created_at')
+
+    from collections import defaultdict
+    history_by_date = defaultdict(list)
+    for session in sessions:
+        messages = list(session.message_set.all())  # ← здесь message_set
+        for i in range(0, len(messages), 2):
+            user_msg = messages[i] if i < len(messages) and messages[i].is_user else None
+            bot_msg = messages[i + 1] if i + 1 < len(messages) and not messages[i + 1].is_user else None
+            if user_msg and bot_msg:
+                history_by_date[user_msg.created_at.date()].append({
+                    'dream': user_msg.content,
+                    'interpretation': bot_msg.content,
+                    'time': user_msg.created_at.strftime('%H:%M')
+                })
+
+    sorted_history = sorted(history_by_date.items(), key=lambda x: x[0], reverse=True)
+    return render(request, 'dreambot/history.html', {'history': sorted_history})
+
+    return render(request, 'dreambot/history.html', {'history': sorted_history})

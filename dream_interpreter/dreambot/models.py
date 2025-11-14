@@ -28,6 +28,7 @@ class User(AbstractBaseUser):
     created_at = models.DateTimeField(auto_now_add=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
+    telegram_id = models.CharField(max_length=50, blank=True, null=True, unique=True, verbose_name="Telegram ID")
 
     objects = UserManager()
     USERNAME_FIELD = 'phone_number'
@@ -48,3 +49,4 @@ class Message(models.Model):
     content = models.TextField()
     audio_file = models.FileField(upload_to='audio/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    related_name = 'messages'

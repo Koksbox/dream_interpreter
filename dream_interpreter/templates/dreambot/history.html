@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>История снов — ИИ сонник</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Playfair+Display:wght@500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌙 История снов</h1>
+            <p>Твои сны — карта подсознания. Отслеживай динамику во времени.</p>
+        </div>
+
+        {% if history %}
+            {% for date, dreams in history %}
+                <div class="date-section">
+                    <div class="date-header">
+                        {{ date|date:"d E Y" }} ({{ dreams|length }} {% if dreams|length == 1 %}сон{% elif dreams|length < 5 %}сна{% else %} снов{% endif %})
+                    </div>
+                    {% for item in dreams %}
+                        <div class="dream-item">
+                            <div class="dream-text">«{{ item.dream }}»</div>
+                            <div class="interpretation-text">{{ item.interpretation }}</div>
+                            <div class="time">{{ item.time }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty">
+                <p>Ты ещё не рассказывал(а) мне сны.<br>Вернись в <a href="{% url 'chat' %}" style="color: var(--accent);">чат</a> и поделись первым!</p>
+            </div>
+        {% endif %}
+
+        <a href="{% url 'chat' %}" class="back-link">← Вернуться в чат</a>
+    </div>
+
+
+<style>
+:root {
+    --bg-gradient: linear-gradient(135deg, #0f172a, #1e293b);
+    --glass-bg: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --accent: #818cf8;
+    --dream-bg: rgba(15, 23, 42, 0.5);
+    --interpret-bg: rgba(129, 140, 248, 0.15);
+}
+
+* {
+    margin: 0; padding: 0; box-sizing: border-box;
+}
+
+body {
+    background: var(--bg-gradient);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    position: relative;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+        radial-gradient(1.5px 1.5px at 15% 25%, #fff, transparent),
+        radial-gradient(1.5px 1.5px at 75% 15%, #fff, transparent),
+        radial-gradient(1.5px 1.5px at 40% 60%, #fff, transparent);
+    animation: twinkle 10s infinite ease-in-out;
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+}
+
+.container {
+    width: 100%;
+    max-width: 800px;
+    position: relative;
+    z-index: 2;
+}
+
+.header {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    margin-bottom: 8px;
+    background: linear-gradient(to right, #cbd5e1, #e2e8f0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.header p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.date-section {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.date-header {
+    padding: 16px 24px;
+    background: rgba(15, 23, 42, 0.7);
+    font-weight: 600;
+    font-size: 1.1rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.dream-item {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.dream-item:last-child {
+    border-bottom: none;
+}
+
+.dream-text {
+    background: var(--dream-bg);
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    font-style: italic;
+    line-height: 1.5;
+}
+
+.interpretation-text {
+    background: var(--interpret-bg);
+    padding: 12px;
+    border-radius: 12px;
+    line-height: 1.5;
+    border-left: 3px solid var(--accent);
+}
+
+.time {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    text-align: right;
+}
+
+.empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+}
+
+.back-link {
+    display: inline-block;
+    margin-top: 20px;
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+@media (max-width: 600px) {
+    .header h1 { font-size: 1.7rem; }
+    .dream-text, .interpretation-text { font-size: 0.95rem; }
+}
+</style>
+</body>
+</html>
