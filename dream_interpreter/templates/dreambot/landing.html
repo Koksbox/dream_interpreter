@@ -1,0 +1,7 @@
+<form method="post">
+    {% csrf_token %}
+    <input type="tel" name="phone" placeholder="+7 (999) 123-45-67" required maxlength="15">
+    <input type="text" name="name" placeholder="Твоё имя (необязательно)" maxlength="50">
+    <input type="date" name="birth_date" placeholder="Дата рождения (необязательно)">
+    <button type="submit">Начать разговор</button>
+</form>
