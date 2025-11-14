@@ -1,0 +1,99 @@
+/* Glassmorphism + минимализм */
+:root {
+    --bg: #f0f9ff;
+    --panel-bg: rgba(255, 255, 255, 0.6);
+    --text: #1e3a8a;
+    --user-msg: #dbeafe;
+    --bot-msg: #f0fdf4;
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #e0f2fe, #dbeafe);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--text);
+}
+
+.auth-panel, .chat-container {
+    background: var(--panel-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: var(--shadow);
+    padding: 30px;
+    width: 90%;
+    max-width: 600px;
+}
+
+.auth-panel input, .auth-panel button {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 16px;
+}
+.auth-panel button {
+    background: #3b82f6;
+    color: white;
+    cursor: pointer;
+}
+
+.chat-header {
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: #1d4ed8;
+}
+
+.messages {
+    height: 60vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+.message {
+    padding: 12px 16px;
+    border-radius: 16px;
+    max-width: 80%;
+    line-height: 1.4;
+}
+.message.user {
+    background: var(--user-msg);
+    margin-left: auto;
+    border-bottom-right-radius: 4px;
+}
+.message.bot {
+    background: var(--bot-msg);
+    margin-right: auto;
+    border-bottom-left-radius: 4px;
+}
+
+.input-area {
+    display: flex;
+    gap: 10px;
+}
+.input-area input {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+}
+.input-area button {
+    padding: 12px 20px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+}

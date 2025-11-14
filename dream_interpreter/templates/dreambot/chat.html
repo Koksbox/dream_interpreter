@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>ИИ сонник — Чат</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="chat-body">
+    <div class="chat-container">
+        <div class="chat-header">ИИ сонник • Психологическая интерпретация</div>
+        <div class="messages" id="messages">
+            {% for msg in messages %}
+                <div class="message {% if msg.is_user %}user{% else %}bot{% endif %}">
+                    {{ msg.content }}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Опиши свой сон...">
+            <button id="send-btn">Отправить</button>
+            <!-- Позже: <button id="mic-btn">🎤</button> -->
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('send-btn').onclick = async () => {
+            const input = document.getElementById('user-input');
+            const text = input.value.trim();
+            if (!text) return;
+            input.value = '';
+
+            // Добавить сообщение в UI
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML += `<div class="message user">${text}</div>`;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            const res = await fetch('/api/message/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text})
+            });
+            const data = await res.json();
+            messagesDiv.innerHTML += `<div class="message bot">${data.reply}</div>`;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        };
+    </script>
+</body>
+</html>
