@@ -7,136 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Playfair+Display:wght@500&display=swap" rel="stylesheet">
-</head>
-<body>
-        <div class="chat-container">
-        <div class="chat-header">
-            <span>🌙 ИИ сонник</span>
-            <div>
-                <a href="{% url 'guide' %}" style="color: #a5b4fc; margin-right: 16px; font-size: 0.9em; text-decoration: none;">инструкция</a>
-                <a href="{% url 'history' %}" style="color: #a5b4fc; margin-right: 16px; font-size: 0.9em; text-decoration: none;">история</a>
-                <a href="{% url 'profile' %}" style="color: #a5b4fc; font-size: 0.9em; text-decoration: none;">профиль</a>
-            </div>
-        </div>
-
-        <div class="messages" id="messages">
-            {% if messages %}
-                {% regroup messages|dictsort:"created_at" by created_at.date as messages_by_date %}
-                {% for date_group in messages_by_date %}
-                    <div class="date-divider">
-                        {{ date_group.grouper|date:"l, d E Y" }}
-                    </div>
-                    {% for msg in date_group.list %}
-                        <div class="message {% if msg.is_user %}user{% else %}bot{% endif %}">
-                            <div class="message-content">{{ msg.content|linebreaksbr }}</div>
-                            <div class="message-time">{{ msg.created_at|time:"H:i" }}</div>
-                        </div>
-                    {% endfor %}
-                {% endfor %}
-            {% else %}
-                <div class="message bot">
-                    <div class="message-content">Привет! Расскажи мне свой сон. Чем подробнее — тем глубже мы сможем понять его смысл.</div>
-                </div>
-            {% endif %}
-        </div>
-
-        <div class="input-area">
-            <input type="text" id="user-input" placeholder="Опиши свой сон…">
-            <button id="send-btn">Отправить</button>
-        </div>
-    </div>
-
-<script>
-const messagesDiv = document.getElementById('messages');
-const input = document.getElementById('user-input');
-const sendBtn = document.getElementById('send-btn');
-
-function scrollToBottom() {
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
-function addMessage(text, isUser, timestamp) {
-    const now = new Date(timestamp);
-    const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-
-    const div = document.createElement('div');
-    div.classList.add('message');
-    if (isUser) div.classList.add('user');
-    else div.classList.add('bot');
-
-    div.innerHTML = `
-        <div class="message-content">${text}</div>
-        <div class="message-time">${timeStr}</div>
-    `;
-    messagesDiv.appendChild(div);
-    scrollToBottom();
-}
-
-function showTyping() {
-    const typing = document.createElement('div');
-    typing.className = 'typing-indicator';
-    typing.id = 'typing';
-    typing.textContent = 'Сонник думает…';
-    messagesDiv.appendChild(typing);
-    scrollToBottom();
-}
-
-function hideTyping() {
-    const typing = document.getElementById('typing');
-    if (typing) typing.remove();
-}
-
-async function sendMessage() {
-    const text = input.value.trim();
-    if (!text) return;
-
-    input.value = '';
-    input.disabled = true;
-    sendBtn.disabled = true;
-
-    // Добавляем сообщение пользователя с текущим временем
-    const userTime = new Date().toISOString();  // можно заменить на server-time позже
-    addMessage(text, true, userTime);
-
-    showTyping();
-
-    try {
-        const res = await fetch('/api/message/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text })
-        });
-
-        hideTyping();
-
-        if (res.ok) {
-            const data = await res.json();
-            addMessage(data.reply, false, data.bot_time);  // ← используем время из БД
-        } else {
-            addMessage('Извини, я устал… Попробуй позже.', false, new Date().toISOString());
-        }
-    } catch (e) {
-        hideTyping();
-        addMessage('Ошибка соединения. Проверь интернет.', false, new Date().toISOString());
-    } finally {
-        input.disabled = false;
-        sendBtn.disabled = false;
-        input.focus();
-    }
-}
-
-sendBtn.addEventListener('click', sendMessage);
-input.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-    }
-});
-
-scrollToBottom();
-</script>
-
-<style>
+    <style>
         :root {
             --bg-gradient: linear-gradient(135deg, #0f172a, #1e293b);
             --glass-bg: rgba(255, 255, 255, 0.06);
@@ -206,26 +77,80 @@ scrollToBottom();
         }
 
         .chat-header {
-            padding: 18px 24px;
+            padding: 16px 20px;
             background: rgba(15, 23, 42, 0.7);
-            font-family: 'Playfair Display', serif;
-            font-size: 1.3rem;
-            text-align: center;
             border-bottom: 1px solid var(--glass-border);
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+
+        .header-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            justify-content: flex-end;
             align-items: center;
         }
 
-        .chat-header a {
+        .nav-link {
+            font-size: 0.92rem;
             color: #a5b4fc;
             text-decoration: none;
-            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            background: transparent;
+            border: none;
+            cursor: pointer;
             font-family: 'Inter', sans-serif;
+            text-align: center;
+            min-width: 90px;
         }
 
-        .chat-header a:hover {
-            text-decoration: underline;
+        .nav-link:hover {
+            color: white;
+            background: rgba(129, 140, 248, 0.15);
+            text-decoration: none;
+        }
+
+        /* Адаптация: на мобильных — по 2 ссылки в строку */
+        @media (max-width: 600px) {
+            .chat-header {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 14px 16px;
+            }
+
+            .header-title {
+                text-align: center;
+                font-size: 1.2rem;
+            }
+
+            .header-nav {
+                justify-content: center;
+                width: 100%;
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .nav-link {
+                font-size: 0.88rem;
+                padding: 8px 4px;
+                min-width: 48%; /* ≈ 2 в строку с учётом gap */
+                flex: 1 1 48%;
+            }
         }
 
         .messages {
@@ -237,9 +162,49 @@ scrollToBottom();
             gap: 18px;
         }
 
+        .date-divider {
+            text-align: center;
+            margin: 24px 0;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            position: relative;
+        }
+
+        .date-divider::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(148, 163, 184, 0.2);
+            z-index: 0;
+        }
+
+        .date-divider span {
+            background: var(--glass-bg);
+            padding: 0 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .message-content {
+            margin-bottom: 6px;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-align: right;
+        }
+
+        .message.user .message-time {
+            color: #cbd5e1;
+        }
+
         .message {
             max-width: 80%;
-            padding: 16px 20px;
+            padding: 16px 20px 8px 20px;
             border-radius: 18px;
             line-height: 1.5;
             font-size: 15px;
@@ -267,12 +232,11 @@ scrollToBottom();
             border-bottom-left-radius: 6px;
         }
 
-        /* Индикатор печатания */
         .typing-indicator {
             align-self: flex-start;
             background: var(--bot-bubble);
             border: 1px solid var(--bot-border);
-            padding: 16px 20px;
+            padding: 16px 20px 8px 20px;
             border-radius: 18px;
             border-bottom-left-radius: 6px;
             color: #94a3b8;
@@ -325,12 +289,183 @@ scrollToBottom();
             box-shadow: 0 6px 20px rgba(129, 140, 248, 0.6);
         }
 
-        /* Адаптивность */
-        @media (max-width: 600px) {
-            .chat-container { height: 100vh; width: 100%; border-radius: 0; }
-            .message { max-width: 85%; font-size: 14px; }
-            .chat-header { font-size: 1.1rem; padding: 14px; }
+        @media (max-width: 480px) {
+            .input-area {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .input-area input {
+                margin-right: 0;
+            }
+            .input-area button {
+                width: 100%;
+                padding: 14px;
+            }
         }
     </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="header-title">🌙 ИИ сонник</div>
+            <div class="header-nav">
+                <a href="{% url 'guide' %}" class="nav-link">Инструкция</a>
+                <a href="{% url 'history' %}" class="nav-link">История</a>
+                <a href="{% url 'profile' %}" class="nav-link">Профиль</a>
+                <button id="clear-btn" class="nav-link clear-link">Очистить чат</button>
+            </div>
+        </div>
+
+        <div class="messages" id="messages">
+            {% if messages %}
+                {% regroup messages|dictsort:"created_at" by created_at.date as messages_by_date %}
+                {% for date_group in messages_by_date %}
+                    <div class="date-divider">
+                        <span>{{ date_group.grouper|date:"l, d E Y" }}</span>
+                    </div>
+                    {% for msg in date_group.list %}
+                        <div class="message {% if msg.is_user %}user{% else %}bot{% endif %}">
+                            <div class="message-content">{{ msg.content|linebreaksbr }}</div>
+                            <div class="message-time">{{ msg.created_at|time:"H:i" }}</div>
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+            {% else %}
+                <div class="message bot">
+                    <div class="message-content">Привет! Расскажи мне свой сон. Чем подробнее — тем глубже мы сможем понять его смысл.</div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Опиши свой сон…">
+            <button id="send-btn">Отправить</button>
+        </div>
+    </div>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const input = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        function scrollToBottom() {
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addMessage(text, isUser, timestamp) {
+            const now = new Date(timestamp);
+            const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+            const div = document.createElement('div');
+            div.classList.add('message');
+            if (isUser) div.classList.add('user');
+            else div.classList.add('bot');
+
+            div.innerHTML = `
+                <div class="message-content">${text}</div>
+                <div class="message-time">${timeStr}</div>
+            `;
+            messagesDiv.appendChild(div);
+            scrollToBottom();
+        }
+
+        function showTyping() {
+            const typing = document.createElement('div');
+            typing.className = 'typing-indicator';
+            typing.id = 'typing';
+            typing.textContent = 'Сонник думает…';
+            messagesDiv.appendChild(typing);
+            scrollToBottom();
+        }
+
+        function hideTyping() {
+            const typing = document.getElementById('typing');
+            if (typing) typing.remove();
+        }
+
+        document.getElementById('clear-btn').onclick = async () => {
+            if (!confirm('Очистить чат? Твоя история снов останется в разделе "История".')) return;
+
+            const res = await fetch('/api/clear-chat/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            });
+
+            if (res.ok) {
+                location.reload();
+            } else {
+                alert('Не удалось очистить чат');
+            }
+        };
+
+        // Автоуведомление о новом дне
+        function isNewDay() {
+            const lastCleared = localStorage.getItem('chatClearedDate');
+            const today = new Date().toISOString().split('T')[0];
+            if (lastCleared !== today) {
+                localStorage.setItem('chatClearedDate', today);
+                return true;
+            }
+            return false;
+        }
+
+        if (isNewDay()) {
+            if (messagesDiv.children.length > 0) {
+                const notice = document.createElement('div');
+                notice.className = 'message bot';
+                notice.innerHTML = '<div class="message-content">✨ Доброе утро! Это новый день — чат обновлён.</div>';
+                messagesDiv.prepend(notice);
+                messagesDiv.scrollTop = 0;
+            }
+        }
+
+        async function sendMessage() {
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+            input.disabled = true;
+            sendBtn.disabled = true;
+
+            const userTime = new Date().toISOString();
+            addMessage(text, true, userTime);
+
+            showTyping();
+
+            try {
+                const res = await fetch('/api/message/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+
+                hideTyping();
+
+                if (res.ok) {
+                    const data = await res.json();
+                    addMessage(data.reply, false, data.bot_time);
+                } else {
+                    addMessage('Извини, я устал… Попробуй позже.', false, new Date().toISOString());
+                }
+            } catch (e) {
+                hideTyping();
+                addMessage('Ошибка соединения. Проверь интернет.', false, new Date().toISOString());
+            } finally {
+                input.disabled = false;
+                sendBtn.disabled = false;
+                input.focus();
+            }
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        scrollToBottom();
+    </script>
 </body>
 </html>

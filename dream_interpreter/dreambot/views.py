@@ -9,7 +9,7 @@ from .models import User, DreamSession, Message
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.db.models import Prefetch
-
+from django.utils import timezone
 
 
 # Системный промпт — психологический уклон
@@ -48,9 +48,38 @@ def landing(request):
 def chat_view(request):
     if not request.user.is_authenticated:
         return redirect('landing')
-    session, _ = DreamSession.objects.get_or_create(user=request.user)
+
+    # Получаем или создаём активную сессию
+    session, created = DreamSession.objects.get_or_create(
+        user=request.user,
+        is_active=True,
+        defaults={'created_at': timezone.now()}
+    )
+
+    # Если сегодня не дата создания сессии → начать новую (полночь)
+    if session.created_date != timezone.now().date():
+        session.is_active = False
+        session.save()
+        session = DreamSession.objects.create(user=request.user, is_active=True)
+
     messages = Message.objects.filter(session=session).order_by('created_at')
     return render(request, 'dreambot/chat.html', {'messages': messages})
+
+
+@csrf_exempt
+def clear_chat(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Не авторизован'}, status=401)
+    if request.method != "POST":
+        return JsonResponse({'error': 'Только POST'}, status=400)
+
+    # Деактивировать текущую сессию
+    DreamSession.objects.filter(user=request.user, is_active=True).update(is_active=False)
+    # Создать новую
+    DreamSession.objects.create(user=request.user, is_active=True)
+
+    return JsonResponse({'status': 'ok'})
+
 
 
 import re

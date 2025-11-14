@@ -10,4 +10,5 @@ urlpatterns = [
     path('api/message/', views.send_message, name='send_message'),
     path('api/profile/', views.update_profile, name='update_profile'),
     path('guide/', views.guide_view, name='guide'),
+    path('api/clear-chat/', views.clear_chat, name='clear_chat'),
 ]

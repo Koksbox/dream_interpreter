@@ -1,6 +1,7 @@
 # dreambot/models.py
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.utils import timezone
 
 class UserManager(BaseUserManager):
     def create_user(self, phone_number, name=None, birth_date=None, password=None):
@@ -39,9 +40,15 @@ class User(AbstractBaseUser):
     def has_module_perms(self, app_label):
         return self.is_superuser
 
+
 class DreamSession(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sessions')
     created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    @property
+    def created_date(self):
+        return self.created_at.date()
 
 class Message(models.Model):
     session = models.ForeignKey(DreamSession, on_delete=models.CASCADE)
