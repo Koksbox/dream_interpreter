@@ -52,51 +52,71 @@ def chat_view(request):
     messages = Message.objects.filter(session=session).order_by('created_at')
     return render(request, 'dreambot/chat.html', {'messages': messages})
 
+
+import re
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 def get_llm_response(user, user_message):
-    # Получаем последние 10 сообщений (5 пар) для контекста
+    # Очистка API-ключа от всех возможных мусорных символов
+    raw_key = settings.OPENROUTER_API_KEY
+    # Оставляем только допустимые символы: буквы, цифры, дефис, подчёркивание
+    clean_key = re.sub(r'[^a-zA-Z0-9\-_]', '', raw_key.strip())
+
+    if not clean_key.startswith('sk-or-v1-'):
+        logger.error(f"Некорректный OPENROUTER_API_KEY: начало='{raw_key[:20]}...', очищено='{clean_key[:20]}'")
+        return "Сервис временно недоступен. Попробуй позже."
+
+    # --- остальной код без изменений до headers ---
     past_messages = Message.objects.filter(
         session__user=user
     ).order_by('-created_at')[:10]
 
-    # Формируем историю диалога (в обратном порядке)
     history = []
     for msg in reversed(past_messages):
         role = "user" if msg.is_user else "assistant"
         history.append({"role": role, "content": msg.content})
 
-    # Добавляем новое сообщение
     full_context = history + [{"role": "user", "content": user_message}]
 
-    # Формируем имя для персонализации
-    user_name = user.name if user.name else None
-
-    # Подготавливаем системный промпт с именем
     prompt_with_name = SYSTEM_PROMPT
-    if user_name:
-        prompt_with_name += f"\nИмя пользователя: {user_name}"
+    if user.name:
+        prompt_with_name += f"\nИмя пользователя: {user.name}"
 
     messages_for_api = [{"role": "system", "content": prompt_with_name}] + full_context
 
     try:
+        logger.info(f"Отправка запроса к LLM для {user.phone_number}")
+
         response = requests.post(
             url="https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
-                "HTTP-Referer": "http://localhost:8000",  # для OpenRouter
-                "X-Title": "ИИ Сонник",
+            headers = {
+                "Authorization": f"Bearer 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",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "http://localhost:8077",
+                "X-Title": "DreamInterpreter",
             },
-            json={
-                "model": "meta-llama/llama-3.1-8b-instruct:free",
-                "messages": messages_for_api,
-                "temperature": 0.7,
-                "max_tokens": 500,
-            }
-        )
+                json={
+                    "model": "qwen/qwen3-coder:free",
+                    "messages": messages_for_api,
+                    "temperature": 0.7,
+                    "max_tokens": 500,
+                }
+            )
+
         response.raise_for_status()
         data = response.json()
-        return data['choices'][0]['message']['content'].strip()
+        reply = data['choices'][0]['message']['content'].strip()
+        logger.info(f"Получен ответ от LLM (длина: {len(reply)})")
+        return reply
+
     except Exception as e:
+        logger.error(f"Ошибка при запросе к LLM: {e}", exc_info=True)
         return "Извини, я сейчас устал… Расскажи ещё раз? 😊"
+
+
 
 @csrf_exempt
 def send_message(request):
@@ -115,15 +135,20 @@ def send_message(request):
         session, _ = DreamSession.objects.get_or_create(user=user)
 
         # Сохраняем сообщение пользователя
-        Message.objects.create(session=session, is_user=True, content=text)
+        user_msg = Message.objects.create(session=session, is_user=True, content=text)
 
         # Получаем ответ от LLM
         bot_reply = get_llm_response(user, text)
 
         # Сохраняем ответ бота
-        Message.objects.create(session=session, is_user=False, content=bot_reply)
+        bot_msg = Message.objects.create(session=session, is_user=False, content=bot_reply)
 
-        return JsonResponse({'reply': bot_reply})
+        # Возвращаем данные с временем
+        return JsonResponse({
+            'reply': bot_reply,
+            'user_time': user_msg.created_at.isoformat(),   # ← время пользователя
+            'bot_time': bot_msg.created_at.isoformat()      # ← время бота
+        })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -192,3 +217,7 @@ def history_view(request):
     return render(request, 'dreambot/history.html', {'history': sorted_history})
 
     return render(request, 'dreambot/history.html', {'history': sorted_history})
+
+
+def guide_view(request):
+    return render(request, 'dreambot/guide.html')

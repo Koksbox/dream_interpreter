@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Как пользоваться — ИИ сонник</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e293b);
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --accent: #818cf8;
+            --accent-light: #a5b4fc;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(2px 2px at 20% 30%, #fff, transparent),
+                radial-gradient(2px 2px at 80% 20%, #fff, transparent),
+                radial-gradient(2px 2px at 50% 70%, #fff, transparent);
+            animation: twinkle 9s infinite ease-in-out;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            position: relative;
+            z-index: 2;
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+
+        .card h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2rem;
+            margin-bottom: 12px;
+            background: linear-gradient(to right, var(--text-secondary), var(--accent-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card h2 {
+            font-size: 1.4rem;
+            margin: 24px 0 16px 0;
+            color: var(--accent-light);
+        }
+
+        .card p {
+            margin-bottom: 16px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .card ul {
+            padding-left: 24px;
+            margin-bottom: 20px;
+            color: var(--text-secondary);
+        }
+
+        .card li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        .tip {
+            background: rgba(129, 140, 248, 0.1);
+            border-left: 3px solid var(--accent);
+            padding: 16px;
+            border-radius: 0 12px 12px 0;
+            margin: 20px 0;
+            font-style: italic;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+
+        .back-link:hover {
+            opacity: 0.8;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            .card { padding: 24px; }
+            .card h1 { font-size: 1.8rem; }
+            .card h2 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>🌙 Как пользоваться ИИ-сонником</h1>
+            <p>
+                Добро пожаловать! Этот сервис создан, чтобы помочь тебе понять, что твоё подсознание пытается сказать через сны.
+                Здесь <strong>нет гаданий, предсказаний и эзотерики</strong> — только психологический взгляд на твои переживания.
+            </p>
+
+            <h2>1. Как рассказывать сон?</h2>
+            <p>Чем подробнее — тем лучше. Постарайся включить:</p>
+            <ul>
+                <li><strong>Эмоции</strong>: что ты чувствовал(а) во сне?</li>
+                <li><strong>Действия</strong>: что происходило?</li>
+                <li><strong>Места и люди</strong>: где ты был(а)? Кто был рядом?</li>
+                <li><strong>Символы</strong>: что особенно запомнилось?</li>
+            </ul>
+            <p>Пример: <em>«Мне снилось, что я теряю зубы в зеркале, а за спиной стоит моя мама в чёрном. Я чувствовала панику и стыд»</em>.</p>
+
+            <h2>2. Что делать, если сон смутный?</h2>
+            <p>Расскажи то, что помнишь — даже одну фразу или образ. Я помогу задать уточняющие вопросы.</p>
+
+            <h2>3. Как работает интерпретация?</h2>
+            <p>
+                Я — ИИ-психолог. Я не предсказываю будущее. Вместо этого я помогаю тебе увидеть:
+            </p>
+            <ul>
+                <li>Скрытые тревоги или желания</li>
+                <li>Внутренние конфликты</li>
+                <li>Связь между сном и реальной жизнью</li>
+                <li>Ресурсы для личностного роста</li>
+            </ul>
+
+            <div class="tip">
+                💡 Сны — это не «сигналы судьбы», а зеркало твоих глубинных переживаний. Ты всегда можешь задать уточняющие вопросы — я здесь, чтобы слушать.
+            </div>
+
+            <h2>4. Конфиденциальность</h2>
+            <p>Твои сны видишь только ты и я. Все данные хранятся в защищённой базе и используются только для персонализации твоего опыта.</p>
+
+            <a href="{% url 'chat' %}" class="back-link">→ Перейти в чат</a>
+        </div>
+    </div>
+</body>
+</html>

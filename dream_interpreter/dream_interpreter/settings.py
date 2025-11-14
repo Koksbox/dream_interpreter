@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from decouple import config
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'your-secret-key-here'  # Замени в продакшене!
@@ -9,7 +10,7 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
-
+OPENROUTER_API_KEY = config('OPENROUTER_API_KEY', default='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')
 TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN', default='8210635345:AAGKRadzTWU83Mtq6alWa2pwz8hRacLPYNE')
 
 INSTALLED_APPS = [
