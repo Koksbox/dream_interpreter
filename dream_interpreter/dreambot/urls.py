@@ -13,4 +13,5 @@ urlpatterns = [
     path('api/clear-chat/', views.clear_chat, name='clear_chat'),
     path('premium/checkout/', views.premium_checkout, name='premium_checkout'),
     path('robokassa/result/', views.robokassa_result, name='robokassa_result'),
+path('premium/mock-activate/', views.mock_premium_activate, name='mock_premium_activate'),
 ]

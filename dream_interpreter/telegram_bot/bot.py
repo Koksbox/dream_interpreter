@@ -2,8 +2,6 @@
 import os
 import django
 from django.conf import settings
-from telegram.ext import MessageHandler, filters
-
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'dream_interpreter.settings')
 django.setup()
@@ -17,6 +15,7 @@ from telegram.ext import (
 )
 from telegram_bot.handlers import (
     start,
+    activate_premium,
     handle_message,
     clear_chat,
     profile_start,
@@ -30,8 +29,6 @@ from telegram_bot.handlers import (
     ASK_BIRTH_DATE
 )
 
-
-
 def run_telegram_bot():
     token = settings.TELEGRAM_BOT_TOKEN
     if not token:
@@ -40,7 +37,7 @@ def run_telegram_bot():
 
     application = Application.builder().token(token).build()
 
-    # Профиль — диалог
+    # Диалог профиля
     profile_conv = ConversationHandler(
         entry_points=[CommandHandler("profile", profile_start)],
         states={
@@ -50,10 +47,19 @@ def run_telegram_bot():
         fallbacks=[CommandHandler("cancel", cancel)]
     )
 
+    # Команды
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.CONTACT, handle_contact))  # ← новое
+    application.add_handler(CommandHandler("premium", activate_premium))
+    application.add_handler(CommandHandler("clear", clear_chat))
+    application.add_handler(CommandHandler("guide", guide_command))
+    application.add_handler(CommandHandler("history", history_command))
+
+    # Обработчики сообщений
+    application.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     application.add_handler(profile_conv)
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    # Обработка обычного текста (не команд)
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex(r'^\/'), handle_message))
 
     print("Telegram-бот запущен...")
     application.run_polling()

@@ -356,7 +356,20 @@ if ('serviceWorker' in navigator) {
     <div class="chat-container">
         <div class="chat-header">
             <div class="header-title">🌙 ИИ сонник</div>
+                        <div style="text-align:center; margin:16px 0;">
+                            <button id="premium-btn" style="
+                                background: linear-gradient(135deg, #f59e0b, #f97316);
+                                color: white;
+                                border: none;
+                                padding: 12px 24px;
+                                border-radius: 12px;
+                                font-weight: 600;
+                                cursor: pointer;
+                                box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+                            ">🔓 Разблокировать Премиум — бесплатно</button>
+                        </div>
             <div class="install-hint" id="install-hint" style="display:none;">
+
                 <button id="install-btn" class="install-btn">💾 Установить</button>
             </div>
             <div class="header-nav">
@@ -393,6 +406,7 @@ if ('serviceWorker' in navigator) {
             <button id="send-btn">Отправить</button>
         </div>
     </div>
+
 
 <script>
 const messagesDiv = document.getElementById('messages');
@@ -514,12 +528,12 @@ async function sendMessage() {
                             font-weight: 600;
                             cursor: pointer;
                             box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-                        ">🔓 Купить Премиум — 299 ₽</button>
+                        ">🔓 Разблокировать Премиум — бесплатно</button>
                     </div>
                 `;
                 messagesDiv.appendChild(premiumBtn);
                 document.getElementById('premium-btn').onclick = () => {
-                    window.location.href = '/premium/checkout/';
+                    window.location.href = '/premium/mock-activate/';
                 };
             }
         } else {

@@ -125,12 +125,13 @@ def send_message(request):
         user.free_messages_today = 0
         user.save()
 
+    # Проверка лимита
     if not user.is_premium and user.free_messages_today >= 5:
         return JsonResponse({
             'reply': (
                 "💫 Ты достиг(ла) лимита — 5 снов в день.\n\n"
-                "Хочешь неограниченный доступ к глубокой интерпретации, анализу повторяющихся символов и сохранению всей истории?\n\n"
-                "Нажми кнопку ниже, чтобы разблокировать Премиум!"
+                "Хочешь неограниченный доступ к глубокой интерпретации и сохранению всей истории?\n\n"
+                "👉 Нажми кнопку ниже, чтобы разблокировать Премиум!"
             ),
             'show_premium_button': True
         }, status=200)
@@ -265,3 +266,14 @@ def robokassa_result(request):
     except User.DoesNotExist:
         return HttpResponse('fail')
     return HttpResponse('OK')
+
+
+from django.shortcuts import redirect
+
+@csrf_exempt
+def mock_premium_activate(request):
+    if request.user.is_authenticated:
+        user = request.user
+        user.is_premium = True
+        user.save()
+    return redirect('chat')
