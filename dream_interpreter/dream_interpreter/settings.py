@@ -80,6 +80,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'dream_interpreter.wsgi.application'
 
+
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',

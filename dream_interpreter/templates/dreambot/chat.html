@@ -1,313 +1,364 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+    {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ИИ сонник — Чат</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Playfair+Display:wght@500&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-gradient: linear-gradient(135deg, #0f172a, #1e293b);
-            --glass-bg: rgba(255, 255, 255, 0.06);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --text-primary: #f1f5f9;
-            --text-secondary: #cbd5e1;
-            --user-bubble: #334155;
-            --bot-bubble: rgba(129, 140, 248, 0.25);
-            --bot-border: rgba(129, 140, 248, 0.4);
-            --input-bg: rgba(15, 23, 42, 0.6);
-            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <meta name="theme-color" content="#1e293b">
+    <link rel="icon" type="image/png" sizes="192x192" href="{% static 'icons/dream.png' %}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="{% static 'icons/dream.png' %}">
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    <script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('{% static "sw.js" %}')
+      .then(reg => {
+        console.log('✅ SW registered:', reg.scope);
+        if (reg.installing) console.log('Installing...');
+        else if (reg.waiting) console.log('Waiting...');
+        else if (reg.active) console.log('Active!');
+      })
+      .catch(err => {
+        console.error('❌ SW registration failed:', err);
+      });
+  });
+}
+</script>
+<style>
+    :root {
+        --bg-gradient: linear-gradient(135deg, #0f172a, #1e293b);
+        --glass-bg: rgba(255, 255, 255, 0.06);
+        --glass-border: rgba(255, 255, 255, 0.1);
+        --text-primary: #f1f5f9;
+        --text-secondary: #cbd5e1;
+        --user-bubble: #334155;
+        --bot-bubble: rgba(129, 140, 248, 0.25);
+        --bot-border: rgba(129, 140, 248, 0.4);
+        --input-bg: rgba(15, 23, 42, 0.6);
+        --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
 
-        body {
-            background: var(--bg-gradient);
-            color: var(--text-primary);
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-        }
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
 
-        /* Звёздный фон */
-        body::before {
-            content: "";
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background:
-                radial-gradient(1.5px 1.5px at 15% 25%, #fff, transparent),
-                radial-gradient(1.5px 1.5px at 75% 15%, #fff, transparent),
-                radial-gradient(1.5px 1.5px at 40% 60%, #fff, transparent),
-                radial-gradient(1.5px 1.5px at 90% 75%, #fff, transparent);
-            animation: twinkle 10s infinite ease-in-out;
-            opacity: 0.4;
-            pointer-events: none;
-        }
+    body {
+        background: var(--bg-gradient);
+        color: var(--text-primary);
+        font-family: 'Inter', sans-serif;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+    }
 
-        @keyframes twinkle {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.6; }
-        }
+    body::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background:
+            radial-gradient(1.5px 1.5px at 15% 25%, #fff, transparent),
+            radial-gradient(1.5px 1.5px at 75% 15%, #fff, transparent),
+            radial-gradient(1.5px 1.5px at 40% 60%, #fff, transparent),
+            radial-gradient(1.5px 1.5px at 90% 75%, #fff, transparent);
+        animation: twinkle 10s infinite ease-in-out;
+        opacity: 0.4;
+        pointer-events: none;
+    }
 
-        .chat-container {
-            position: relative;
-            z-index: 2;
-            width: 95%;
-            max-width: 700px;
-            height: 90vh;
-            display: flex;
-            flex-direction: column;
-            background: var(--glass-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            overflow: hidden;
-            box-shadow: var(--shadow);
-        }
+    @keyframes twinkle {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.6; }
+    }
 
+    .chat-container {
+        position: relative;
+        z-index: 2;
+        width: 95%;
+        max-width: 700px;
+        height: 90vh;
+        display: flex;
+        flex-direction: column;
+        background: var(--glass-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+    }
+
+    .chat-header {
+        padding: 16px 20px;
+        background: rgba(15, 23, 42, 0.7);
+        border-bottom: 1px solid var(--glass-border);
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .header-title {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.3rem;
+        font-weight: 500;
+        color: var(--text-primary);
+        white-space: nowrap;
+    }
+
+    .install-btn {
+        font-size: 0.85rem;
+        color: #a5b4fc;
+        font-weight: 500;
+        padding: 6px 10px;
+        border-radius: 8px;
+        background: rgba(129, 140, 248, 0.1);
+        border: none;
+        cursor: pointer;
+        font-family: 'Inter', sans-serif;
+        transition: all 0.2s ease;
+    }
+
+    .install-btn:hover {
+        color: white;
+        background: rgba(129, 140, 248, 0.25);
+    }
+
+    .header-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        justify-content: flex-end;
+        align-items: center;
+    }
+
+    .nav-link {
+        font-size: 0.92rem;
+        color: #a5b4fc;
+        text-decoration: none;
+        font-weight: 500;
+        padding: 6px 12px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-family: 'Inter', sans-serif;
+        text-align: center;
+        min-width: 90px;
+    }
+
+    .nav-link:hover {
+        color: white;
+        background: rgba(129, 140, 248, 0.15);
+        text-decoration: none;
+    }
+
+    @media (max-width: 600px) {
         .chat-header {
-            padding: 16px 20px;
-            background: rgba(15, 23, 42, 0.7);
-            border-bottom: 1px solid var(--glass-border);
-            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            padding: 14px 16px;
+        }
+        .header-title {
+            text-align: center;
+            font-size: 1.2rem;
+        }
+        .header-nav, .install-hint {
+            justify-content: center;
+            width: 100%;
             flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
             gap: 12px;
         }
-
-        .header-title {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.3rem;
-            font-weight: 500;
-            color: var(--text-primary);
-            white-space: nowrap;
+        .nav-link, .install-btn {
+            font-size: 0.88rem;
+            padding: 8px 4px;
+            min-width: 48%;
+            flex: 1 1 48%;
         }
+    }
 
-        .header-nav {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 14px;
-            justify-content: flex-end;
-            align-items: center;
-        }
+    .messages {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
 
-        .nav-link {
-            font-size: 0.92rem;
-            color: #a5b4fc;
-            text-decoration: none;
-            font-weight: 500;
-            padding: 6px 12px;
-            border-radius: 8px;
-            transition: all 0.2s ease;
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            text-align: center;
-            min-width: 90px;
-        }
+    .date-divider {
+        text-align: center;
+        margin: 24px 0;
+        color: #94a3b8;
+        font-size: 0.85rem;
+        position: relative;
+    }
 
-        .nav-link:hover {
-            color: white;
-            background: rgba(129, 140, 248, 0.15);
-            text-decoration: none;
-        }
+    .date-divider::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: rgba(148, 163, 184, 0.2);
+        z-index: 0;
+    }
 
-        /* Адаптация: на мобильных — по 2 ссылки в строку */
-        @media (max-width: 600px) {
-            .chat-header {
-                flex-direction: column;
-                align-items: stretch;
-                padding: 14px 16px;
-            }
+    .date-divider span {
+        background: var(--glass-bg);
+        padding: 0 12px;
+        position: relative;
+        z-index: 1;
+    }
 
-            .header-title {
-                text-align: center;
-                font-size: 1.2rem;
-            }
+    .message-content {
+        margin-bottom: 6px;
+    }
 
-            .header-nav {
-                justify-content: center;
-                width: 100%;
-                flex-wrap: wrap;
-                gap: 12px;
-            }
+    .message-time {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        text-align: right;
+    }
 
-            .nav-link {
-                font-size: 0.88rem;
-                padding: 8px 4px;
-                min-width: 48%;
-                flex: 1 1 48%;
-            }
-        }
+    .message.user .message-time {
+        color: #cbd5e1;
+    }
 
-        .messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
+    .message {
+        max-width: 80%;
+        padding: 16px 20px 8px 20px;
+        border-radius: 18px;
+        line-height: 1.5;
+        font-size: 15px;
+        position: relative;
+        animation: fadeIn 0.3s ease;
+    }
 
-        .date-divider {
-            text-align: center;
-            margin: 24px 0;
-            color: #94a3b8;
-            font-size: 0.85rem;
-            position: relative;
-        }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 
-        .date-divider::before {
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: rgba(148, 163, 184, 0.2);
-            z-index: 0;
-        }
+    .message.user {
+        background: var(--user-bubble);
+        color: #f1f5f9;
+        align-self: flex-end;
+        border-bottom-right-radius: 6px;
+    }
 
-        .date-divider span {
-            background: var(--glass-bg);
-            padding: 0 12px;
-            position: relative;
-            z-index: 1;
-        }
+    .message.bot {
+        background: var(--bot-bubble);
+        border: 1px solid var(--bot-border);
+        color: #e2e8f0;
+        align-self: flex-start;
+        border-bottom-left-radius: 6px;
+    }
 
-        .message-content {
-            margin-bottom: 6px;
-        }
+    .typing-indicator {
+        align-self: flex-start;
+        background: var(--bot-bubble);
+        border: 1px solid var(--bot-border);
+        padding: 16px 20px 8px 20px;
+        border-radius: 18px;
+        border-bottom-left-radius: 6px;
+        color: #94a3b8;
+        font-style: italic;
+    }
 
-        .message-time {
-            font-size: 0.75rem;
-            color: #94a3b8;
-            text-align: right;
-        }
+    .input-area {
+        display: flex;
+        padding: 16px;
+        background: rgba(15, 23, 42, 0.7);
+        border-top: 1px solid var(--glass-border);
+    }
 
-        .message.user .message-time {
-            color: #cbd5e1;
-        }
+    .input-area input {
+        flex: 1;
+        padding: 14px 20px;
+        background: var(--input-bg);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 20px;
+        color: var(--text-primary);
+        font-size: 16px;
+        font-family: 'Inter', sans-serif;
+        outline: none;
+        margin-right: 12px;
+    }
 
-        .message {
-            max-width: 80%;
-            padding: 16px 20px 8px 20px;
-            border-radius: 18px;
-            line-height: 1.5;
-            font-size: 15px;
-            position: relative;
-            animation: fadeIn 0.3s ease;
-        }
+    .input-area input::placeholder {
+        color: #64748b;
+    }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+    .input-area input:focus {
+        border-color: #818cf8;
+        box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.3);
+    }
 
-        .message.user {
-            background: var(--user-bubble);
-            color: #f1f5f9;
-            align-self: flex-end;
-            border-bottom-right-radius: 6px;
-        }
+    .input-area button {
+        padding: 14px 28px;
+        background: linear-gradient(135deg, #818cf8, #a5b4fc);
+        color: white;
+        border: none;
+        border-radius: 20px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 15px rgba(129, 140, 248, 0.4);
+    }
 
-        .message.bot {
-            background: var(--bot-bubble);
-            border: 1px solid var(--bot-border);
-            color: #e2e8f0;
-            align-self: flex-start;
-            border-bottom-left-radius: 6px;
-        }
+    .input-area button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(129, 140, 248, 0.6);
+    }
 
-        .typing-indicator {
-            align-self: flex-start;
-            background: var(--bot-bubble);
-            border: 1px solid var(--bot-border);
-            padding: 16px 20px 8px 20px;
-            border-radius: 18px;
-            border-bottom-left-radius: 6px;
-            color: #94a3b8;
-            font-style: italic;
-        }
-
+    @media (max-width: 480px) {
         .input-area {
-            display: flex;
-            padding: 16px;
-            background: rgba(15, 23, 42, 0.7);
-            border-top: 1px solid var(--glass-border);
+            flex-direction: column;
+            gap: 10px;
         }
-
         .input-area input {
-            flex: 1;
-            padding: 14px 20px;
-            background: var(--input-bg);
-            border: 1px solid rgba(148, 163, 184, 0.3);
-            border-radius: 20px;
-            color: var(--text-primary);
-            font-size: 16px;
-            font-family: 'Inter', sans-serif;
-            outline: none;
-            margin-right: 12px;
+            margin-right: 0;
         }
-
-        .input-area input::placeholder {
-            color: #64748b;
-        }
-
-        .input-area input:focus {
-            border-color: #818cf8;
-            box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.3);
-        }
-
         .input-area button {
-            padding: 14px 28px;
-            background: linear-gradient(135deg, #818cf8, #a5b4fc);
-            color: white;
-            border: none;
-            border-radius: 20px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 15px rgba(129, 140, 248, 0.4);
+            width: 100%;
+            padding: 14px;
         }
+    }
+</style>
 
-        .input-area button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(129, 140, 248, 0.6);
-        }
-
-        @media (max-width: 480px) {
-            .input-area {
-                flex-direction: column;
-                gap: 10px;
-            }
-            .input-area input {
-                margin-right: 0;
-            }
-            .input-area button {
-                width: 100%;
-                padding: 14px;
-            }
-        }
-    </style>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('{% static "sw.js" %}')
+        .then(reg => console.log('SW registered:', reg))
+        .catch(err => console.warn('SW registration failed:', err));
+    });
+  }
+</script>
 </head>
 <body>
     <div class="chat-container">
         <div class="chat-header">
             <div class="header-title">🌙 ИИ сонник</div>
+            <div class="install-hint" id="install-hint" style="display:none;">
+                <button id="install-btn" class="install-btn">💾 Установить</button>
+            </div>
             <div class="header-nav">
                 <a href="{% url 'guide' %}" class="nav-link">Инструкция</a>
                 <a href="{% url 'history' %}" class="nav-link">История</a>
@@ -353,7 +404,6 @@ function scrollToBottom() {
 }
 
 function addMessage(text, isUser, timestamp) {
-    // Преобразуем строку в Date
     const now = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
     const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
@@ -381,10 +431,38 @@ function showTyping() {
 
 function hideTyping() {
     const typing = document.getElementById('typing');
-    if (typing) typing.remove(); // ← ИСПРАВЛЕНО: было 'testing'
+    if (typing) typing.remove();
 }
 
-// Обработчик отправки сообщения
+// PWA Install
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('install-hint').style.display = 'block';
+});
+
+document.getElementById('install-btn')?.addEventListener('click', async () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        document.getElementById('install-hint').style.display = 'none';
+    }
+});
+
+// Очистка чата
+document.getElementById('clear-btn').onclick = async () => {
+    if (!confirm('Очистить чат? Твоя история снов останется в разделе "История".')) return;
+    const res = await fetch('/api/clear-chat/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+    });
+    if (res.ok) location.reload();
+    else alert('Не удалось очистить чат');
+};
+
+// Отправка сообщения
 sendBtn.addEventListener('click', sendMessage);
 input.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -401,13 +479,10 @@ async function sendMessage() {
     input.disabled = true;
     sendBtn.disabled = true;
 
-    // Добавляем сообщение пользователя
     const userTime = new Date().toISOString();
     addMessage(text, true, userTime);
-
     showTyping();
 
-    // Таймаут 10 секунд
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -426,7 +501,6 @@ async function sendMessage() {
             const data = await res.json();
             addMessage(data.reply, false, data.bot_time);
 
-            // Кнопка Премиум
             if (data.show_premium_button) {
                 const premiumBtn = document.createElement('div');
                 premiumBtn.innerHTML = `
@@ -449,12 +523,11 @@ async function sendMessage() {
                 };
             }
         } else {
-            // Обработка 429, 404 и других ошибок
             hideTyping();
             if (res.status === 429) {
                 addMessage('Слишком много запросов. Подожди 1–2 минуты.', false, new Date().toISOString());
             } else if (res.status === 404) {
-                addMessage('Сервис временно недоступен. Пробуем другую модель...', false, new Date().toISOString());
+                addMessage('Сервис временно недоступен.', false, new Date().toISOString());
             } else {
                 addMessage('Ошибка сервера. Попробуй позже.', false, new Date().toISOString());
             }

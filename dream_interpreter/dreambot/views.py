@@ -99,7 +99,7 @@ def get_llm_response(user, user_message):
                 "stream": False,
                 "options": {"temperature": 0.7}
             },
-            timeout=30
+            timeout=60
         )
         response.raise_for_status()
         data = response.json()

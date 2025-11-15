@@ -1,0 +1,40 @@
+{
+  "id": "/",
+  "name": "ИИ сонник",
+  "short_name": "Сонник",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "description": "Психологическая интерпретация снов через ИИ",
+  "dir": "ltr",
+  "lang": "ru-RU",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/icons/dream.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/dream_512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [
+  {
+    "src": "/static/screenshots/shir.png",
+    "type": "image/png",
+    "sizes": "1280x720",
+    "form_factor": "wide"
+  },
+  {
+    "src": "/static/screenshots/mob.png",
+    "type": "image/png",
+    "sizes": "1280x720",
+    "form_factor": "narrow"
+  }
+]
+}
