@@ -17,361 +17,402 @@
     <link rel="apple-touch-icon" href="{% static 'icons/dream.png' %}">
 
     <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('{% static "sw.js" %}')
-      .then(reg => {
-        console.log('✅ SW registered:', reg.scope);
-        if (reg.installing) console.log('Installing...');
-        else if (reg.waiting) console.log('Waiting...');
-        else if (reg.active) console.log('Active!');
-      })
-      .catch(err => {
-        console.error('❌ SW registration failed:', err);
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('{% static "sw.js" %}')
+          .then(reg => console.log('✅ SW registered:', reg))
+          .catch(err => console.warn('❌ SW failed:', err));
       });
-  });
-}
-</script>
-<style>
-    :root {
-        --bg-gradient: linear-gradient(135deg, #0f172a, #1e293b);
-        --glass-bg: rgba(255, 255, 255, 0.06);
-        --glass-border: rgba(255, 255, 255, 0.1);
-        --text-primary: #f1f5f9;
-        --text-secondary: #cbd5e1;
-        --user-bubble: #334155;
-        --bot-bubble: rgba(129, 140, 248, 0.25);
-        --bot-border: rgba(129, 140, 248, 0.4);
-        --input-bg: rgba(15, 23, 42, 0.6);
-        --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
-
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    body {
-        background: var(--bg-gradient);
-        color: var(--text-primary);
-        font-family: 'Inter', sans-serif;
-        min-height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        position: relative;
-        overflow: hidden;
-    }
-
-    body::before {
-        content: "";
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background:
-            radial-gradient(1.5px 1.5px at 15% 25%, #fff, transparent),
-            radial-gradient(1.5px 1.5px at 75% 15%, #fff, transparent),
-            radial-gradient(1.5px 1.5px at 40% 60%, #fff, transparent),
-            radial-gradient(1.5px 1.5px at 90% 75%, #fff, transparent);
-        animation: twinkle 10s infinite ease-in-out;
-        opacity: 0.4;
-        pointer-events: none;
-    }
-
-    @keyframes twinkle {
-        0%, 100% { opacity: 0.3; }
-        50% { opacity: 0.6; }
-    }
-
-    .chat-container {
-        position: relative;
-        z-index: 2;
-        width: 95%;
-        max-width: 700px;
-        height: 90vh;
-        display: flex;
-        flex-direction: column;
-        background: var(--glass-bg);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid var(--glass-border);
-        border-radius: 24px;
-        overflow: hidden;
-        box-shadow: var(--shadow);
-    }
-
-    .chat-header {
-        padding: 16px 20px;
-        background: rgba(15, 23, 42, 0.7);
-        border-bottom: 1px solid var(--glass-border);
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .header-title {
-        font-family: 'Playfair Display', serif;
-        font-size: 1.3rem;
-        font-weight: 500;
-        color: var(--text-primary);
-        white-space: nowrap;
-    }
-
-    .install-btn {
-        font-size: 0.85rem;
-        color: #a5b4fc;
-        font-weight: 500;
-        padding: 6px 10px;
-        border-radius: 8px;
-        background: rgba(129, 140, 248, 0.1);
-        border: none;
-        cursor: pointer;
-        font-family: 'Inter', sans-serif;
-        transition: all 0.2s ease;
-    }
-
-    .install-btn:hover {
-        color: white;
-        background: rgba(129, 140, 248, 0.25);
-    }
-
-    .header-nav {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 14px;
-        justify-content: flex-end;
-        align-items: center;
-    }
-
-    .nav-link {
-        font-size: 0.92rem;
-        color: #a5b4fc;
-        text-decoration: none;
-        font-weight: 500;
-        padding: 6px 12px;
-        border-radius: 8px;
-        transition: all 0.2s ease;
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        font-family: 'Inter', sans-serif;
-        text-align: center;
-        min-width: 90px;
-    }
-
-    .nav-link:hover {
-        color: white;
-        background: rgba(129, 140, 248, 0.15);
-        text-decoration: none;
-    }
-
-    @media (max-width: 600px) {
-        .chat-header {
-            flex-direction: column;
-            align-items: stretch;
-            padding: 14px 16px;
+    </script>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e293b);
+            --glass-bg: rgba(255, 255, 255, 0.06);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --user-bubble: #334155;
+            --bot-bubble: rgba(129, 140, 248, 0.25);
+            --bot-border: rgba(129, 140, 248, 0.4);
+            --input-bg: rgba(15, 23, 42, 0.6);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
-        .header-title {
-            text-align: center;
-            font-size: 1.2rem;
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .header-nav, .install-hint {
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
             justify-content: center;
-            width: 100%;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(1.5px 1.5px at 15% 25%, #fff, transparent),
+                radial-gradient(1.5px 1.5px at 75% 15%, #fff, transparent),
+                radial-gradient(1.5px 1.5px at 40% 60%, #fff, transparent),
+                radial-gradient(1.5px 1.5px at 90% 75%, #fff, transparent);
+            animation: twinkle 10s infinite ease-in-out;
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+
+        .chat-container {
+            position: relative;
+            z-index: 2;
+            width: 95%;
+            max-width: 700px;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .chat-header {
+            padding: 16px 20px;
+            background: rgba(15, 23, 42, 0.7);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
             flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
             gap: 12px;
         }
-        .nav-link, .install-btn {
-            font-size: 0.88rem;
-            padding: 8px 4px;
-            min-width: 48%;
-            flex: 1 1 48%;
+
+        .header-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
         }
-    }
 
-    .messages {
-        flex: 1;
-        padding: 20px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 18px;
-    }
+        .premium-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #f59e0b, #f97316);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+            font-size: 0.95rem;
+            text-align: center;
+        }
 
-    .date-divider {
-        text-align: center;
-        margin: 24px 0;
-        color: #94a3b8;
-        font-size: 0.85rem;
-        position: relative;
-    }
+        .premium-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.6);
+        }
 
-    .date-divider::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: rgba(148, 163, 184, 0.2);
-        z-index: 0;
-    }
+        .install-btn {
+            font-size: 0.85rem;
+            color: #a5b4fc;
+            font-weight: 500;
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: rgba(129, 140, 248, 0.1);
+            border: none;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+        }
 
-    .date-divider span {
-        background: var(--glass-bg);
-        padding: 0 12px;
-        position: relative;
-        z-index: 1;
-    }
+        .install-btn:hover {
+            color: white;
+            background: rgba(129, 140, 248, 0.25);
+        }
 
-    .message-content {
-        margin-bottom: 6px;
-    }
+        .header-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            justify-content: flex-end;
+            align-items: center;
+        }
 
-    .message-time {
-        font-size: 0.75rem;
-        color: #94a3b8;
-        text-align: right;
-    }
+        .nav-link {
+            font-size: 0.92rem;
+            color: #a5b4fc;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            text-align: center;
+            min-width: 90px;
+        }
 
-    .message.user .message-time {
-        color: #cbd5e1;
-    }
+        .nav-link:hover {
+            color: white;
+            background: rgba(129, 140, 248, 0.15);
+            text-decoration: none;
+        }
 
-    .message {
-        max-width: 80%;
-        padding: 16px 20px 8px 20px;
-        border-radius: 18px;
-        line-height: 1.5;
-        font-size: 15px;
-        position: relative;
-        animation: fadeIn 0.3s ease;
-    }
+        @media (max-width: 600px) {
+            .chat-header {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 14px 16px;
+            }
+            .header-title {
+                text-align: center;
+                font-size: 1.2rem;
+            }
+            .header-nav, .install-hint {
+                justify-content: center;
+                width: 100%;
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+            .nav-link, .install-btn {
+                font-size: 0.88rem;
+                padding: 8px 4px;
+                min-width: 48%;
+                flex: 1 1 48%;
+            }
+            .premium-btn {
+                font-size: 0.9rem;
+                padding: 9px 18px;
+                margin-top: 8px;
+            }
+        }
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .message.user {
-        background: var(--user-bubble);
-        color: #f1f5f9;
-        align-self: flex-end;
-        border-bottom-right-radius: 6px;
-    }
-
-    .message.bot {
-        background: var(--bot-bubble);
-        border: 1px solid var(--bot-border);
-        color: #e2e8f0;
-        align-self: flex-start;
-        border-bottom-left-radius: 6px;
-    }
-
-    .typing-indicator {
-        align-self: flex-start;
-        background: var(--bot-bubble);
-        border: 1px solid var(--bot-border);
-        padding: 16px 20px 8px 20px;
-        border-radius: 18px;
-        border-bottom-left-radius: 6px;
-        color: #94a3b8;
-        font-style: italic;
-    }
-
-    .input-area {
-        display: flex;
-        padding: 16px;
-        background: rgba(15, 23, 42, 0.7);
-        border-top: 1px solid var(--glass-border);
-    }
-
-    .input-area input {
-        flex: 1;
-        padding: 14px 20px;
-        background: var(--input-bg);
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        border-radius: 20px;
-        color: var(--text-primary);
-        font-size: 16px;
-        font-family: 'Inter', sans-serif;
-        outline: none;
-        margin-right: 12px;
-    }
-
-    .input-area input::placeholder {
-        color: #64748b;
-    }
-
-    .input-area input:focus {
-        border-color: #818cf8;
-        box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.3);
-    }
-
-    .input-area button {
-        padding: 14px 28px;
-        background: linear-gradient(135deg, #818cf8, #a5b4fc);
-        color: white;
-        border: none;
-        border-radius: 20px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.2s;
-        box-shadow: 0 4px 15px rgba(129, 140, 248, 0.4);
-    }
-
-    .input-area button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(129, 140, 248, 0.6);
-    }
-
-    @media (max-width: 480px) {
-        .input-area {
+        .messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 18px;
         }
-        .input-area input {
-            margin-right: 0;
-        }
-        .input-area button {
-            width: 100%;
-            padding: 14px;
-        }
-    }
-</style>
 
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('{% static "sw.js" %}')
-        .then(reg => console.log('SW registered:', reg))
-        .catch(err => console.warn('SW registration failed:', err));
-    });
-  }
-</script>
+        .date-divider {
+            text-align: center;
+            margin: 24px 0;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            position: relative;
+        }
+
+        .date-divider::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(148, 163, 184, 0.2);
+            z-index: 0;
+        }
+
+        .date-divider span {
+            background: var(--glass-bg);
+            padding: 0 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .message-content {
+            margin-bottom: 6px;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-align: right;
+        }
+
+        .message.user .message-time {
+            color: #cbd5e1;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 16px 20px 8px 20px;
+            border-radius: 18px;
+            line-height: 1.5;
+            font-size: 15px;
+            position: relative;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            background: var(--user-bubble);
+            color: #f1f5f9;
+            align-self: flex-end;
+            border-bottom-right-radius: 6px;
+        }
+
+        .message.bot {
+            background: var(--bot-bubble);
+            border: 1px solid var(--bot-border);
+            color: #e2e8f0;
+            align-self: flex-start;
+            border-bottom-left-radius: 6px;
+        }
+
+        .typing-indicator {
+            align-self: flex-start;
+            background: var(--bot-bubble);
+            border: 1px solid var(--bot-border);
+            padding: 16px 20px 8px 20px;
+            border-radius: 18px;
+            border-bottom-left-radius: 6px;
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        .input-area {
+            display: flex;
+            padding: 16px;
+            background: rgba(15, 23, 42, 0.7);
+            border-top: 1px solid var(--glass-border);
+            gap: 8px;
+        }
+
+        .mic-btn {
+            padding: 14px 16px;
+            background: rgba(129, 140, 248, 0.2);
+            border: 1px solid rgba(129, 140, 248, 0.4);
+            border-radius: 20px;
+            color: #a5b4fc;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 50px;
+        }
+
+        .mic-btn:hover {
+            background: rgba(129, 140, 248, 0.3);
+            transform: scale(1.05);
+        }
+
+        .mic-btn.recording {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: rgba(239, 68, 68, 0.6);
+            color: #fca5a5;
+            animation: pulse-red 1s infinite;
+        }
+
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 14px 20px;
+            background: var(--input-bg);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            border-radius: 20px;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+        }
+
+        .input-area input::placeholder {
+            color: #64748b;
+        }
+
+        .input-area input:focus {
+            border-color: #818cf8;
+            box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.3);
+        }
+
+        .input-area #send-btn {
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #818cf8, #a5b4fc);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(129, 140, 248, 0.4);
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .voice-btn {
+            background: rgba(129, 140, 248, 0.15);
+            border: 1px solid rgba(129, 140, 248, 0.3);
+            border-radius: 8px;
+            padding: 6px 12px;
+            color: #a5b4fc;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .voice-btn:hover {
+            background: rgba(129, 140, 248, 0.25);
+        }
+
+        .input-area button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(129, 140, 248, 0.6);
+        }
+
+        @media (max-width: 480px) {
+            .input-area {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .input-area input {
+                margin-right: 0;
+            }
+            .input-area button {
+                width: 100%;
+                padding: 14px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="chat-container">
         <div class="chat-header">
             <div class="header-title">🌙 ИИ сонник</div>
-                        <div style="text-align:center; margin:16px 0;">
-                            <button id="premium-btn" style="
-                                background: linear-gradient(135deg, #f59e0b, #f97316);
-                                color: white;
-                                border: none;
-                                padding: 12px 24px;
-                                border-radius: 12px;
-                                font-weight: 600;
-                                cursor: pointer;
-                                box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-                            ">🔓 Разблокировать Премиум — бесплатно</button>
-                        </div>
-            <div class="install-hint" id="install-hint" style="display:none;">
-
-                <button id="install-btn" class="install-btn">💾 Установить</button>
-            </div>
+            <a href="{% url 'mock_premium_activate' %}" class="premium-btn" id="premium-btn">{% if user.is_premium %}✨ Премиум активен{% else %}🔓 Разблокировать Премиум — бесплатно{% endif %}</a>
             <div class="header-nav">
                 <a href="{% url 'guide' %}" class="nav-link">Инструкция</a>
                 <a href="{% url 'history' %}" class="nav-link">История</a>
@@ -391,6 +432,11 @@ if ('serviceWorker' in navigator) {
                         <div class="message {% if msg.is_user %}user{% else %}bot{% endif %}">
                             <div class="message-content">{{ msg.content|linebreaksbr }}</div>
                             <div class="message-time">{{ msg.created_at|time:"H:i" }}</div>
+                            {% if not msg.is_user %}
+                            <div class="message-actions">
+                                <button class="voice-btn" onclick="speakText('{{ msg.content|escapejs }}')">🔊 Озвучить</button>
+                            </div>
+                            {% endif %}
                         </div>
                     {% endfor %}
                 {% endfor %}
@@ -402,20 +448,29 @@ if ('serviceWorker' in navigator) {
         </div>
 
         <div class="input-area">
+            <button id="mic-btn" class="mic-btn" title="Голосовой ввод">🎤</button>
             <input type="text" id="user-input" placeholder="Опиши свой сон…">
             <button id="send-btn">Отправить</button>
         </div>
     </div>
 
-
 <script>
-const messagesDiv = document.getElementById('messages');
-const input = document.getElementById('user-input');
-const sendBtn = document.getElementById('send-btn');
+// Ждем загрузки DOM
+document.addEventListener('DOMContentLoaded', function() {
+    const messagesDiv = document.getElementById('messages');
+    const input = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
 
-function scrollToBottom() {
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
+    if (!messagesDiv || !input || !sendBtn) {
+        console.error('Не найдены необходимые элементы DOM');
+        return;
+    }
+
+    function scrollToBottom() {
+        if (messagesDiv) {
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    }
 
 function addMessage(text, isUser, timestamp) {
     const now = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
@@ -426,9 +481,16 @@ function addMessage(text, isUser, timestamp) {
     if (isUser) div.classList.add('user');
     else div.classList.add('bot');
 
+    const actionsHtml = !isUser ? `
+        <div class="message-actions">
+            <button class="voice-btn" onclick="speakText('${text.replace(/'/g, "\\'")}')">🔊 Озвучить</button>
+        </div>
+    ` : '';
+
     div.innerHTML = `
         <div class="message-content">${text}</div>
         <div class="message-time">${timeStr}</div>
+        ${actionsHtml}
     `;
     messagesDiv.appendChild(div);
     scrollToBottom();
@@ -448,120 +510,292 @@ function hideTyping() {
     if (typing) typing.remove();
 }
 
-// PWA Install
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    document.getElementById('install-hint').style.display = 'block';
-});
-
-document.getElementById('install-btn')?.addEventListener('click', async () => {
-    if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        deferredPrompt = null;
-        document.getElementById('install-hint').style.display = 'none';
-    }
-});
-
-// Очистка чата
-document.getElementById('clear-btn').onclick = async () => {
-    if (!confirm('Очистить чат? Твоя история снов останется в разделе "История".')) return;
-    const res = await fetch('/api/clear-chat/', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-    });
-    if (res.ok) location.reload();
-    else alert('Не удалось очистить чат');
-};
-
-// Отправка сообщения
-sendBtn.addEventListener('click', sendMessage);
-input.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // PWA Install
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
-        sendMessage();
+        deferredPrompt = e;
+        const installHint = document.getElementById('install-hint');
+        if (installHint) installHint.style.display = 'block';
+    });
+
+    const installBtn = document.getElementById('install-btn');
+    if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                const installHint = document.getElementById('install-hint');
+                if (installHint) installHint.style.display = 'none';
+            }
+        });
+    }
+
+    // Очистка чата
+    const clearBtn = document.getElementById('clear-btn');
+    if (clearBtn) {
+        clearBtn.onclick = async () => {
+            if (!confirm('Очистить чат? Твоя история снов останется в разделе "История".')) return;
+            const res = await fetch('/api/clear-chat/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            });
+            if (res.ok) location.reload();
+            else alert('Не удалось очистить чат');
+        };
+    }
+
+    // Функция для получения CSRF токена из cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Отправка сообщения
+    async function sendMessage() {
+        const text = input.value.trim();
+        if (!text) return;
+
+        input.value = '';
+        input.disabled = true;
+        sendBtn.disabled = true;
+
+        const userTime = new Date().toISOString();
+        addMessage(text, true, userTime);
+        showTyping();
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // Увеличиваем таймаут до 60 секунд
+
+        try {
+            const csrftoken = getCookie('csrftoken');
+            
+            const res = await fetch('/api/message/', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken || ''
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ text }),
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (res.ok) {
+                const data = await res.json();
+                hideTyping();
+                addMessage(data.reply, false, data.bot_time);
+            } else {
+                hideTyping();
+                let errorText = 'Ошибка сервера. Попробуй позже.';
+                if (res.status === 401 || res.status === 403) {
+                    errorText = 'Нужно войти в систему. Обнови страницу.';
+                } else if (res.status === 429) {
+                    errorText = 'Слишком много запросов. Подожди 1–2 минуты.';
+                } else if (res.status === 404) {
+                    errorText = 'Сервис временно недоступен.';
+                } else if (res.status === 500) {
+                    errorText = 'Ошибка на сервере. Попробуй позже.';
+                }
+                // Пытаемся получить текст ошибки от сервера
+                try {
+                    const errorData = await res.json();
+                    if (errorData.reply) {
+                        errorText = errorData.reply;
+                    }
+                } catch (e) {
+                    // Игнорируем ошибку парсинга
+                }
+                addMessage(errorText, false, new Date().toISOString());
+                console.error('Ошибка запроса:', res.status, res.statusText);
+            }
+        } catch (e) {
+            clearTimeout(timeoutId);
+            hideTyping();
+            console.error('Исключение при отправке сообщения:', e);
+            if (e.name === 'AbortError') {
+                addMessage('Сервер не отвечает. Попробуй ещё раз.', false, new Date().toISOString());
+            } else if (e.message && e.message.includes('fetch')) {
+                addMessage('Ошибка соединения. Проверь интернет и попробуй ещё раз.', false, new Date().toISOString());
+            } else {
+                addMessage('Произошла ошибка. Попробуй ещё раз или обнови страницу.', false, new Date().toISOString());
+            }
+        } finally {
+            input.disabled = false;
+            sendBtn.disabled = false;
+            input.focus();
+        }
+    }
+
+    // Привязываем обработчики событий
+    sendBtn.addEventListener('click', sendMessage);
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    scrollToBottom();
+
+    // ASR - Распознавание речи
+    let recognition = null;
+    let isRecording = false;
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.lang = 'ru-RU';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            input.value = transcript;
+            input.focus();
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            if (event.error === 'no-speech') {
+                alert('Речь не распознана. Попробуйте ещё раз.');
+            }
+        };
+
+        recognition.onend = () => {
+            isRecording = false;
+            const micBtn = document.getElementById('mic-btn');
+            if (micBtn) {
+                micBtn.classList.remove('recording');
+                micBtn.textContent = '🎤';
+            }
+        };
+    }
+
+    const micBtn = document.getElementById('mic-btn');
+    if (micBtn) {
+        micBtn.addEventListener('click', () => {
+            if (!recognition) {
+                alert('Голосовой ввод не поддерживается в вашем браузере. Используйте Chrome или Edge.');
+                return;
+            }
+
+            if (isRecording) {
+                recognition.stop();
+                isRecording = false;
+            } else {
+                recognition.start();
+                isRecording = true;
+                micBtn.classList.add('recording');
+                micBtn.textContent = '⏹️';
+            }
+        });
+    }
+
+    // TTS - Озвучивание текста (глобальная функция для использования в шаблоне)
+    window.speakText = function(text) {
+        if ('speechSynthesis' in window) {
+            // Останавливаем предыдущее озвучивание
+            window.speechSynthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ru-RU';
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            
+            // Выбираем русский голос если доступен
+            const voices = window.speechSynthesis.getVoices();
+            const russianVoice = voices.find(voice => voice.lang.startsWith('ru'));
+            if (russianVoice) {
+                utterance.voice = russianVoice;
+            }
+            
+            window.speechSynthesis.speak(utterance);
+        } else {
+            alert('Озвучивание не поддерживается в вашем браузере.');
+        }
+    };
+
+    // Загружаем голоса при загрузке страницы
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = () => {
+            // Голоса загружены
+        };
     }
 });
 
-async function sendMessage() {
-    const text = input.value.trim();
-    if (!text) return;
-
-    input.value = '';
-    input.disabled = true;
-    sendBtn.disabled = true;
-
-    const userTime = new Date().toISOString();
-    addMessage(text, true, userTime);
-    showTyping();
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-    try {
-        const res = await fetch('/api/message/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text }),
-            signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-        hideTyping();
-
-        if (res.ok) {
-            const data = await res.json();
-            addMessage(data.reply, false, data.bot_time);
-
-            if (data.show_premium_button) {
-                const premiumBtn = document.createElement('div');
-                premiumBtn.innerHTML = `
-                    <div style="text-align:center; margin:16px 0;">
-                        <button id="premium-btn" style="
-                            background: linear-gradient(135deg, #f59e0b, #f97316);
-                            color: white;
-                            border: none;
-                            padding: 12px 24px;
-                            border-radius: 12px;
-                            font-weight: 600;
-                            cursor: pointer;
-                            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-                        ">🔓 Разблокировать Премиум — бесплатно</button>
-                    </div>
-                `;
-                messagesDiv.appendChild(premiumBtn);
-                document.getElementById('premium-btn').onclick = () => {
-                    window.location.href = '/premium/mock-activate/';
-                };
-            }
-        } else {
-            hideTyping();
-            if (res.status === 429) {
-                addMessage('Слишком много запросов. Подожди 1–2 минуты.', false, new Date().toISOString());
-            } else if (res.status === 404) {
-                addMessage('Сервис временно недоступен.', false, new Date().toISOString());
-            } else {
-                addMessage('Ошибка сервера. Попробуй позже.', false, new Date().toISOString());
-            }
+// Обновление статуса премиума после активации (выполняется после загрузки DOM)
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.search.includes('premium=activated')) {
+        const premiumBtn = document.getElementById('premium-btn');
+        if (premiumBtn) {
+            premiumBtn.textContent = '✨ Премиум активен';
+            premiumBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            premiumBtn.onclick = null;
+            premiumBtn.href = '#';
+            // Показываем уведомление
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: linear-gradient(135deg, #10b981, #059669);
+                color: white;
+                padding: 16px 24px;
+                border-radius: 12px;
+                box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+                z-index: 1000;
+                font-weight: 600;
+                animation: slideDown 0.3s ease;
+            `;
+            notification.textContent = '✨ Премиум активирован!';
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                notification.style.animation = 'slideUp 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
         }
-    } catch (e) {
-        clearTimeout(timeoutId);
-        hideTyping();
-        if (e.name === 'AbortError') {
-            addMessage('Сервер не отвечает. Попробуй ещё раз.', false, new Date().toISOString());
-        } else {
-            addMessage('Ошибка соединения. Проверь интернет.', false, new Date().toISOString());
-        }
-    } finally {
-        input.disabled = false;
-        sendBtn.disabled = false;
-        input.focus();
+        // Убираем параметр из URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+});
+</script>
+<style>
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
     }
 }
-
-scrollToBottom();
-</script>
+@keyframes slideUp {
+    from {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+    }
+}
+</style>
 </body>
 </html>

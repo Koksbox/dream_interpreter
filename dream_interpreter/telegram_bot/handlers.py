@@ -1,234 +1,337 @@
 # telegram_bot/handlers.py
 import re
 from datetime import datetime
-from telegram import Update, KeyboardButton, ReplyKeyboardMarkup
-from telegram.ext import (
-    ContextTypes,
-    ConversationHandler,
-    MessageHandler,
-    CommandHandler,
-    filters
-)
+from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, CommandHandler, filters, CallbackQueryHandler
 from asgiref.sync import sync_to_async
 from dreambot.models import User, DreamSession, Message
 from dreambot.views import get_llm_response
 
-# === АСИНХРОННЫЕ ОБЁРТКИ ДЛЯ ORM ===
 get_or_create_user = sync_to_async(User.objects.get_or_create)
 get_user_by_id = sync_to_async(User.objects.get)
 create_message = sync_to_async(Message.objects.create)
-get_or_create_session = sync_to_async(DreamSession.objects.get_or_create)
-all_user_sessions = sync_to_async(lambda user: list(DreamSession.objects.filter(user=user).prefetch_related('messages').order_by('-created_at')[:3]))
-
 get_llm_response_async = sync_to_async(get_llm_response)
+
+# Функция для получения или создания активной сессии (как в веб-версии)
+async def get_or_create_active_session(user):
+    from django.utils import timezone
+    
+    # Ищем активную сессию
+    session = await sync_to_async(
+        lambda: DreamSession.objects.filter(user=user, is_active=True).order_by('-created_at').first()
+    )()
+    
+    if not session:
+        # Создаем новую сессию
+        session = await sync_to_async(DreamSession.objects.create)(user=user, is_active=True)
+    else:
+        # Проверяем, не устарела ли сессия (новый день)
+        if session.created_at.date() != timezone.now().date():
+            # Деактивируем старую сессию
+            await sync_to_async(DreamSession.objects.filter(user=user, is_active=True).update)(is_active=False)
+            # Создаем новую
+            session = await sync_to_async(DreamSession.objects.create)(user=user, is_active=True)
+    
+    return session
 
 ASK_NAME, ASK_BIRTH_DATE = range(2)
 
+def get_main_menu():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("👤 Профиль", callback_data="profile"),
+         InlineKeyboardButton("📜 История", callback_data="history")],
+        [InlineKeyboardButton("❓ Инструкция", callback_data="guide"),
+         InlineKeyboardButton("🧹 Очистить", callback_data="clear")],
+        [InlineKeyboardButton("🔓 Премиум", callback_data="premium")]
+    ])
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contact_button = KeyboardButton("📱 Отправить номер", request_contact=True)
     reply_markup = ReplyKeyboardMarkup([[contact_button]], resize_keyboard=True)
-
-    await update.message.reply_text(
+    welcome_text = (
         "🌙 <b>ИИ сонник</b>\n\n"
-        "Я — твой персональный психолог-сонник.\n"
-        "Расскажи мне сон — я помогу понять, что твоё подсознание пытается тебе сказать.\n\n"
-        "<i>Всё, что ты рассказываешь, остаётся между нами.</i>",
+        "Я — твой психолог-сонник. Расскажи сон — поймёшь себя глубже.\n\n"
+        "📱 Для начала отправь свой номер телефона, нажав кнопку ниже.\n\n"
+        "💡 <i>Команды:</i>\n"
+        "/start - начать заново\n"
+        "/profile - редактировать профиль\n"
+        "/help - помощь"
+    )
+    await update.message.reply_text(
+        welcome_text,
         parse_mode="HTML",
         reply_markup=reply_markup
     )
 
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    help_text = (
+        "❓ <b>Помощь</b>\n\n"
+        "🌙 <b>Как пользоваться:</b>\n"
+        "1. Отправь номер телефона\n"
+        "2. Опиши свой сон подробно\n"
+        "3. Получи глубокую интерпретацию\n\n"
+        "📋 <b>Команды:</b>\n"
+        "/start - начать заново\n"
+        "/profile - редактировать профиль\n"
+        "/help - эта справка\n\n"
+        "💡 <b>Советы:</b>\n"
+        "• Чем подробнее описание — тем глубже понимание\n"
+        "• Укажи эмоции, которые ты чувствовал\n"
+        "• Вспомни важные детали\n\n"
+        "✨ Система запоминает твои предыдущие сны и находит связи между ними!"
+    )
+    await update.message.reply_text(help_text, parse_mode="HTML", reply_markup=get_main_menu())
+
+async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    contact = update.message.contact
+    if not contact: return
+    phone = contact.phone_number
+    if phone.startswith('8'): phone = '+7' + phone[1:]
+    elif phone.startswith('7'): phone = '+' + phone
+    elif not phone.startswith('+'): phone = '+' + phone
+    user, created = await get_or_create_user(phone_number=phone)
+    context.user_data['user_id'] = user.id
+    if not user.telegram_id:
+        user.telegram_id = str(update.effective_user.id)
+        await sync_to_async(user.save)()
+    
+    welcome_msg = ""
+    if created:
+        welcome_msg = (
+            "✨ <b>Рад знакомству!</b>\n\n"
+            "Теперь ты можешь рассказывать мне свои сны, и я помогу тебе их понять.\n\n"
+            "💡 <i>Начни с описания своего сна — чем подробнее, тем лучше!</i>"
+        )
+    else:
+        # Проверяем, есть ли история
+        sessions_count = await sync_to_async(
+            lambda: DreamSession.objects.filter(user=user).count()
+        )()
+        if sessions_count > 0:
+            welcome_msg = (
+                "✨ <b>С возвращением!</b>\n\n"
+                f"Я помню тебя — у тебя уже {sessions_count} сессий.\n"
+                "Расскажи новый сон, и я найду связи с предыдущими!"
+            )
+        else:
+            welcome_msg = (
+                "✨ <b>С возвращением!</b>\n\n"
+                "Расскажи мне свой сон — я помогу его понять."
+            )
+    
+    await update.message.reply_text(welcome_msg, parse_mode="HTML", reply_markup=get_main_menu())
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Проверяем наличие текста (фото не имеют текста)
+    if not update.message.text:
+        await update.message.reply_text("📷 Я понимаю только текстовые описания снов. Опиши свой сон словами, пожалуйста.")
+        return
+    
     text = update.message.text.strip()
-
-    # Игнорируем команды — они обрабатываются CommandHandler
-    if text.startswith('/'):
-        return
-
+    if text.startswith('/'): return
     if 'user_id' not in context.user_data:
-        await update.message.reply_text("Сначала пришли номер телефона. Нажми «Отправить номер».")
+        await update.message.reply_text("📱 Нажми «Отправить номер».")
         return
-
     try:
         user = await get_user_by_id(id=context.user_data['user_id'])
-    except User.DoesNotExist:
-        del context.user_data['user_id']
+    except:
         await update.message.reply_text("Ошибка. Пришли номер снова.")
         return
-
-    # Сброс счётчика в новый день
     today = datetime.now().date()
     if user.last_message_date != today:
         user.last_message_date = today
         user.free_messages_today = 0
         await sync_to_async(user.save)()
-
-    # Проверка лимита
     if not user.is_premium and user.free_messages_today >= 5:
-        await update.message.reply_text(
-            "💫 Ты достиг(ла) лимита — 5 снов в день.\n\n"
-            "Напиши /premium, чтобы разблокировать неограниченный доступ!"
-        )
+        await update.message.reply_text("💫 Лимит — 5 снов в день.\nНапиши /premium или нажми кнопку «Премиум».")
         return
-
-    # Обработка сна
-    session, _ = await get_or_create_session(user=user)
-    await create_message(session=session, is_user=True, content=text)
-    bot_reply = await get_llm_response_async(user, text)
-    await create_message(session=session, is_user=False, content=bot_reply)
-    await update.message.reply_text(bot_reply)
-
-
-# === /profile ===
-async def profile_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if 'user_id' not in context.user_data:
-        await update.message.reply_text("Сначала пришли свой номер телефона.")
-        return ConversationHandler.END
-
+    
+    # Показываем индикатор "печатает..."
+    typing_message = await update.message.reply_text("🌙 Анализирую твой сон...")
+    
     try:
-        user = await get_user_by_id(id=context.user_data['user_id'])
-    except User.DoesNotExist:
-        await update.message.reply_text("Ошибка. Пришли номер снова.")
-        return ConversationHandler.END
+        session = await get_or_create_active_session(user)
+        await create_message(session=session, is_user=True, content=text)
+        
+        if not user.is_premium:
+            user.free_messages_today += 1
+            await sync_to_async(user.save)()
+        
+        # Передаем session для использования контекста
+        bot_reply = await get_llm_response_async(user, text, session=session)
+        bot_msg = await create_message(session=session, is_user=False, content=bot_reply)
+        
+        # Удаляем индикатор и отправляем ответ
+        await typing_message.delete()
+        await update.message.reply_text(bot_reply, reply_markup=get_main_menu())
+    except Exception as e:
+        await typing_message.delete()
+        await update.message.reply_text(
+            "Извини, произошла ошибка. Попробуй ещё раз. 😊",
+            reply_markup=get_main_menu()
+        )
 
-    info = f"Твой профиль:\nИмя: {user.name or 'не указано'}\nДата рождения: {user.birth_date or 'не указана'}\n\n"
-    info += "Хочешь изменить имя? Напиши его или нажми «Пропустить»."
-    await update.message.reply_text(info)
-    return ASK_NAME
+async def profile_start(update: Update | object, context: ContextTypes.DEFAULT_TYPE):
+    if hasattr(update, 'callback_query'):
+        query = update.callback_query
+        await query.answer()
+        if 'user_id' not in context.user_data:
+            await query.edit_message_text("📱 Сначала отправь номер телефона.", reply_markup=get_main_menu())
+            return
+        try:
+            user = await get_user_by_id(id=context.user_data['user_id'])
+            profile_text = "👤 Твой профиль:\n\n"
+            profile_text += f"📱 Телефон: {user.phone_number}\n"
+            if user.name:
+                profile_text += f"👤 Имя: {user.name}\n"
+            else:
+                profile_text += "👤 Имя: не указано\n"
+            if user.birth_date:
+                profile_text += f"🎂 Дата рождения: {user.birth_date.strftime('%d.%m.%Y')}\n"
+            else:
+                profile_text += "🎂 Дата рождения: не указана\n"
+            profile_text += f"\n{'✨ Премиум активен' if user.is_premium else '🔓 Обычный аккаунт'}\n"
+            profile_text += f"📊 Снов сегодня: {user.free_messages_today}/5\n"
+            profile_text += "\n💡 Для редактирования используй команду /profile или веб-интерфейс."
+            await query.edit_message_text(profile_text, reply_markup=get_main_menu())
+        except Exception as e:
+            await query.edit_message_text(f"Ошибка: {str(e)}", reply_markup=get_main_menu())
+    elif hasattr(update, 'message'):
+        if 'user_id' not in context.user_data:
+            await update.message.reply_text("📱 Сначала отправь номер телефона.")
+            return
+        try:
+            user = await get_user_by_id(id=context.user_data['user_id'])
+            await update.message.reply_text(
+                "👤 Для редактирования профиля используй команду /profile\n"
+                "Или перейди на веб-интерфейс.",
+                reply_markup=get_main_menu()
+            )
+        except:
+            await update.message.reply_text("Ошибка.", reply_markup=get_main_menu())
 
+async def history_command(update: Update | object, context: ContextTypes.DEFAULT_TYPE):
+    if hasattr(update, 'callback_query'):
+        query = update.callback_query
+        await query.answer()
+        if 'user_id' not in context.user_data:
+            await query.edit_message_text("📱 Сначала отправь номер телефона.", reply_markup=get_main_menu())
+            return
+        try:
+            user = await get_user_by_id(id=context.user_data['user_id'])
+            sessions = await sync_to_async(list)(DreamSession.objects.filter(user=user).order_by('-created_at')[:10])
+            if not sessions:
+                await query.edit_message_text("📜 История пока пуста.", reply_markup=get_main_menu())
+            else:
+                msg = "📜 История твоих снов:\n\n"
+                for s in sessions:
+                    # Получаем первый сон из сессии
+                    first_dream = await sync_to_async(
+                        lambda: Message.objects.filter(session=s, is_user=True).order_by('created_at').first()
+                    )()
+                    if first_dream:
+                        dream_preview = first_dream.content[:60] + "..." if len(first_dream.content) > 60 else first_dream.content
+                        msg += f"📅 {s.created_at.strftime('%d.%m.%Y')}\n"
+                        msg += f"   {dream_preview}\n\n"
+                    else:
+                        msg += f"📅 {s.created_at.strftime('%d.%m.%Y')}\n\n"
+                msg += "💡 Полную историю можно посмотреть на веб-сайте."
+                await query.edit_message_text(msg, reply_markup=get_main_menu())
+        except Exception as e:
+            await query.edit_message_text(f"Ошибка: {str(e)}", reply_markup=get_main_menu())
+
+async def guide_command(update: Update | object, context: ContextTypes.DEFAULT_TYPE):
+    if hasattr(update, 'callback_query'):
+        query = update.callback_query
+        await query.answer()
+        text = """❓ Инструкция:
+
+1. Опиши свой сон подробно
+2. Укажи эмоции, которые ты чувствовал
+3. Вспомни важные детали
+4. Получи глубокую интерпретацию
+
+Чем подробнее описание — тем глубже понимание! 🌙"""
+        await query.edit_message_text(text, reply_markup=get_main_menu())
+
+async def clear_chat(update: Update | object, context: ContextTypes.DEFAULT_TYPE):
+    if hasattr(update, 'callback_query'):
+        query = update.callback_query
+        await query.answer()
+        if 'user_id' not in context.user_data:
+            await query.edit_message_text("📱 Сначала отправь номер телефона.", reply_markup=get_main_menu())
+            return
+        try:
+            user = await get_user_by_id(id=context.user_data['user_id'])
+            # Деактивируем все активные сессии
+            await sync_to_async(DreamSession.objects.filter(user=user, is_active=True).update)(is_active=False)
+            # Создаем новую
+            await sync_to_async(DreamSession.objects.create)(user=user, is_active=True)
+            await query.edit_message_text(
+                "🧹 Чат очищен.\n\n💡 История всех твоих снов сохранена и будет учитываться при новых интерпретациях.",
+                reply_markup=get_main_menu()
+            )
+        except Exception as e:
+            await query.edit_message_text(f"Ошибка: {str(e)}", reply_markup=get_main_menu())
+
+async def activate_premium(update: Update | object, context: ContextTypes.DEFAULT_TYPE):
+    if hasattr(update, 'callback_query'):
+        query = update.callback_query
+        await query.answer()
+        if 'user_id' not in context.user_data:
+            await query.edit_message_text("📱 Сначала отправь номер телефона.", reply_markup=get_main_menu())
+            return
+        try:
+            user = await get_user_by_id(id=context.user_data['user_id'])
+            user.is_premium = True
+            await sync_to_async(user.save)()
+            await query.edit_message_text(
+                "✨ Премиум активирован!\n\nТеперь у тебя неограниченный доступ к интерпретации снов! 🎉",
+                reply_markup=get_main_menu()
+            )
+        except Exception as e:
+            await query.edit_message_text(f"Ошибка: {str(e)}", reply_markup=get_main_menu())
 
 async def handle_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_input = update.message.text.strip()
-    name = None if user_input.lower() in ["пропустить", "skip", "нет"] else user_input[:100]
-    context.user_data['temp_name'] = name
-    await update.message.reply_text("Теперь укажи дату рождения в формате ДД.ММ.ГГГГ или «Пропустить».")
-    return ASK_BIRTH_DATE
-
+    name = update.message.text.strip()
+    if 'user_id' in context.user_data:
+        try:
+            user = await get_user_by_id(id=context.user_data['user_id'])
+            user.name = name
+            await sync_to_async(user.save)()
+            await update.message.reply_text(f"✅ Имя сохранено: {name}\nТеперь укажи дату рождения (ДД.ММ.ГГГГ):")
+            return ASK_BIRTH_DATE
+        except:
+            pass
+    return ConversationHandler.END
 
 async def handle_birth_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_input = update.message.text.strip()
-    birth_date = None
-
-    if user_input.lower() not in ["пропустить", "skip", "нет"]:
-        try:
-            birth_date = datetime.strptime(user_input, "%d.%m.%Y").date()
-        except ValueError:
-            await update.message.reply_text("Неверный формат. Попробуй: 15.03.1995 или «Пропустить».")
-            return ASK_BIRTH_DATE
-
-    user = await get_user_by_id(id=context.user_data['user_id'])
-    user.name = context.user_data.get('temp_name')
-    user.birth_date = birth_date
-    await sync_to_async(user.save)()
-
-    await update.message.reply_text("✅ Профиль обновлён! Теперь я лучше понимаю тебя.")
+    try:
+        date_str = update.message.text.strip()
+        birth_date = datetime.strptime(date_str, '%d.%m.%Y').date()
+        if 'user_id' in context.user_data:
+            try:
+                user = await get_user_by_id(id=context.user_data['user_id'])
+                user.birth_date = birth_date
+                await sync_to_async(user.save)()
+                await update.message.reply_text("✅ Профиль сохранён!", reply_markup=get_main_menu())
+                return ConversationHandler.END
+            except:
+                pass
+    except ValueError:
+        await update.message.reply_text("Неверный формат. Укажи дату в формате ДД.ММ.ГГГГ:")
+        return ASK_BIRTH_DATE
     return ConversationHandler.END
-
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Настройка профиля отменена.")
+    await update.message.reply_text("Отменено.", reply_markup=get_main_menu())
     return ConversationHandler.END
 
-
-# === Команды ===
-async def history_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if 'user_id' not in context.user_data:
-        await update.message.reply_text("Сначала пришли номер телефона.")
-        return
-
-    try:
-        user = await get_user_by_id(id=context.user_data['user_id'])
-        sessions = await all_user_sessions(user)
-        if not sessions:
-            await update.message.reply_text("У тебя пока нет записанных снов.")
-            return
-
-        text = "✨ Твои последние сны:\n\n"
-        for session in sessions:
-            messages = await sync_to_async(list)(session.messages.all())
-            for i in range(0, len(messages) - 1, 2):
-                if messages[i].is_user and not messages[i+1].is_user:
-                    dream = messages[i].content[:50] + "..." if len(messages[i].content) > 50 else messages[i].content
-                    text += f"• {dream}\n"
-                    break
-            if len(text) > 300:
-                break
-
-        text += "\nПолная история — на сайте."
-        await update.message.reply_text(text)
-    except Exception as e:
-        await update.message.reply_text("Ошибка загрузки истории.")
-
-
-async def clear_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if 'user_id' not in context.user_data:
-        await update.message.reply_text("Сначала пришли номер телефона.")
-        return
-
-    try:
-        user = await get_user_by_id(id=context.user_data['user_id'])
-        await sync_to_async(DreamSession.objects.filter(user=user, is_active=True).update)(is_active=False)
-        await get_or_create_session(user=user, is_active=True)
-        await update.message.reply_text("🧹 Чат очищен. История сохранена — ты можешь посмотреть её через /history.")
-    except Exception as e:
-        await update.message.reply_text("Не удалось очистить чат.")
-
-
-async def guide_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = (
-        "📖 <b>Как пользоваться ИИ-сонником</b>\n\n"
-        "1. <b>Расскажи сон подробно</b>: эмоции, люди, места, символы.\n"
-        "2. <b>Не бойся быть уязвимым</b> — сны отражают внутреннее состояние.\n"
-        "3. <b>Это не эзотерика</b> — я не предсказываю будущее, а помогаю понять себя.\n"
-        "4. Ты всегда можешь:\n"
-        "   • /profile — указать имя и дату рождения\n"
-        "   • /history — посмотреть прошлые сны\n"
-        "   • /clear — начать диалог с чистого листа"
-    )
-    await update.message.reply_text(text, parse_mode="HTML")
-
-
-async def activate_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if 'user_id' not in context.user_data:
-        await update.message.reply_text("Сначала пришли номер телефона.")
-        return
-
-    try:
-        user = await get_user_by_id(id=context.user_data['user_id'])
-        user.is_premium = True  # ← исправлено: удалена кириллическая "А"
-        await sync_to_async(user.save)()
-        await update.message.reply_text("✨ Премиум активирован! Теперь ты можешь отправлять неограниченное количество снов.")
-    except Exception as e:
-        await update.message.reply_text("Ошибка активации.")
-
-
-# === Обработка контакта ===
-async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    contact = update.message.contact
-    if not contact:
-        await update.message.reply_text("Не удалось получить номер.")
-        return
-
-    phone = contact.phone_number
-    if phone.startswith('8'):
-        phone = '+7' + phone[1:]
-    elif phone.startswith('7'):
-        phone = '+' + phone
-    elif not phone.startswith('+'):
-        phone = '+' + phone
-
-    user, created = await get_or_create_user(phone_number=phone)
-    context.user_data['user_id'] = user.id
-
-    if not user.telegram_id:
-        user.telegram_id = str(update.effective_user.id)
-        await sync_to_async(user.save)()
-
-    reply = f"{'Рад знакомству' if created else 'С возвращением'}! ✨\n"
-    if not user.name or not user.birth_date:
-        reply += "Чтобы я мог глубже понимать твои сны, заполни профиль: /profile"
-    else:
-        reply += "Теперь ты можешь рассказать мне свой сон."
-
-    await update.message.reply_text(reply)
+async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    if query.data == "profile": await profile_start(query, context)
+    elif query.data == "history": await history_command(query, context)
+    elif query.data == "guide": await guide_command(query, context)
+    elif query.data == "clear": await clear_chat(query, context)
+    elif query.data == "premium": await activate_premium(query, context)

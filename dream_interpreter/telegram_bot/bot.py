@@ -1,43 +1,22 @@
 # telegram_bot/bot.py
 import os
 import django
-from django.conf import settings
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'dream_interpreter.settings')
 django.setup()
 
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    MessageHandler,
-    filters,
-    ConversationHandler
-)
-from telegram_bot.handlers import (
-    start,
-    activate_premium,
-    handle_message,
-    clear_chat,
-    profile_start,
-    handle_name,
-    handle_contact,
-    handle_birth_date,
-    cancel,
-    guide_command,
-    history_command,
-    ASK_NAME,
-    ASK_BIRTH_DATE
-)
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ConversationHandler
+from telegram_bot.handlers import *
+
 
 def run_telegram_bot():
+    from django.conf import settings
     token = settings.TELEGRAM_BOT_TOKEN
     if not token:
-        print("Ошибка: TELEGRAM_BOT_TOKEN не задан в .env")
+        print("Ошибка: TELEGRAM_BOT_TOKEN не задан")
         return
-
     application = Application.builder().token(token).build()
 
-    # Диалог профиля
     profile_conv = ConversationHandler(
         entry_points=[CommandHandler("profile", profile_start)],
         states={
@@ -47,18 +26,11 @@ def run_telegram_bot():
         fallbacks=[CommandHandler("cancel", cancel)]
     )
 
-    # Команды
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("premium", activate_premium))
-    application.add_handler(CommandHandler("clear", clear_chat))
-    application.add_handler(CommandHandler("guide", guide_command))
-    application.add_handler(CommandHandler("history", history_command))
-
-    # Обработчики сообщений
+    application.add_handler(CommandHandler("help", help_command))
     application.add_handler(MessageHandler(filters.CONTACT, handle_contact))
+    application.add_handler(CallbackQueryHandler(button_callback))
     application.add_handler(profile_conv)
-
-    # Обработка обычного текста (не команд)
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex(r'^\/'), handle_message))
 
     print("Telegram-бот запущен...")

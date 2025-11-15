@@ -9,11 +9,9 @@ if (workbox) {
   // 1. Precache основных страниц и ресурсов
   workbox.precaching.precacheAndRoute([
     { url: '/', revision: null }, // revision: null — для URL с хешем или при использовании генерации
-    { url: '/static/css/main.css', revision: null },
-    { url: '/static/js/main.js', revision: null },
+    { url: '/static/css/style.css', revision: null },
     { url: '/static/icons/dream.png', revision: null },
-    { url: '/static/icons/dream_512.png', revision: null },
-    { url: '/offline/', revision: null } // опционально: страница "оффлайн"
+    { url: '/static/icons/dream_512.png', revision: null }
   ]);
 
   // 2. Кэширование статики: JS, CSS

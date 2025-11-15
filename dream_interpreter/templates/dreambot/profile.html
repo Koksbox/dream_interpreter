@@ -14,6 +14,12 @@
             <h2>👤 Мой профиль</h2>
             <p>Эти данные помогают мне глубже понимать символы твоих снов.</p>
 
+            {% if user.is_premium %}
+            <div class="premium-badge">
+                ✨ Премиум активирован
+            </div>
+            {% endif %}
+
             <input type="text" id="name" placeholder="Твоё имя" value="{{ user.name|default:'' }}">
 
             <input type="date" id="birth_date"
@@ -107,6 +113,24 @@
         margin-bottom: 28px;
         font-weight: 300;
         line-height: 1.6;
+    }
+
+    .premium-badge {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 15px;
+        margin-bottom: 24px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+        50% { box-shadow: 0 4px 20px rgba(16, 185, 129, 0.5); }
     }
 
     .profile-card input {
