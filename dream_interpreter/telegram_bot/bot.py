@@ -51,10 +51,6 @@ def run_telegram_bot():
     )
 
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("profile", profile_start))
-    application.add_handler(CommandHandler("history", history_command))
-    application.add_handler(CommandHandler("guide", guide_command))
-    application.add_handler(CommandHandler("clear", clear_chat))
     application.add_handler(MessageHandler(filters.CONTACT, handle_contact))  # ← новое
     application.add_handler(profile_conv)
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))

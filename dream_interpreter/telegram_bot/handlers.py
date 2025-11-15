@@ -32,21 +32,14 @@ from telegram import KeyboardButton, ReplyKeyboardMarkup
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contact_button = KeyboardButton("📱 Отправить номер", request_contact=True)
-    keyboard = [
-        [contact_button],
-        ["/profile", "/history"],
-        ["/guide", "/clear"]
-    ]
-    reply_markup = ReplyKeyboardMarkup(
-        keyboard,
-        resize_keyboard=True,
-        one_time_keyboard=False,
-        input_field_placeholder="Расскажи мне свой сон или отправь номер"
-    )
+    reply_markup = ReplyKeyboardMarkup([[contact_button]], resize_keyboard=True)
 
     await update.message.reply_text(
-        "🌙 Привет! Я — ИИ сонник.\n\n"
-        "Чтобы начать, просто нажми кнопку ниже — я получу твой номер и сохраню твои сны в защищённом профиле.",
+        "🌙 <b>ИИ сонник</b>\n\n"
+        "Я — твой персональный психолог-сонник.\n"
+        "Расскажи мне сон — я помогу понять, что твоё подсознание пытается тебе сказать.\n\n"
+        "<i>Всё, что ты рассказываешь, остаётся между нами.</i>",
+        parse_mode="HTML",
         reply_markup=reply_markup
     )
 
