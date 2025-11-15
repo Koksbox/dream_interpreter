@@ -384,6 +384,16 @@
             transition: all 0.2s;
         }
 
+        .voice-stop {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #f87171;
+        }
+
+        .voice-stop:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
         .voice-btn:hover {
             background: rgba(129, 140, 248, 0.25);
         }
@@ -434,7 +444,8 @@
                             <div class="message-time">{{ msg.created_at|time:"H:i" }}</div>
                             {% if not msg.is_user %}
                             <div class="message-actions">
-                                <button class="voice-btn" onclick="speakText('{{ msg.content|escapejs }}')">🔊 Озвучить</button>
+                                <button class="voice-btn voice-start" data-text="{{ msg.content|escapejs }}" onclick="speakText(this)">🔊 Озвучить</button>
+                                <button class="voice-btn voice-stop" style="display:none;" onclick="stopSpeaking(this)">⏹️ Остановить</button>
                             </div>
                             {% endif %}
                         </div>
@@ -455,7 +466,6 @@
     </div>
 
 <script>
-// Ждем загрузки DOM
 document.addEventListener('DOMContentLoaded', function() {
     const messagesDiv = document.getElementById('messages');
     const input = document.getElementById('user-input');
@@ -472,64 +482,45 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-function addMessage(text, isUser, timestamp) {
-    const now = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
-    const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    function addMessage(text, isUser, timestamp) {
+        const now = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+        const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
-    const div = document.createElement('div');
-    div.classList.add('message');
-    if (isUser) div.classList.add('user');
-    else div.classList.add('bot');
+        const div = document.createElement('div');
+        div.classList.add('message');
+        if (isUser) div.classList.add('user');
+        else div.classList.add('bot');
 
-    const actionsHtml = !isUser ? `
-        <div class="message-actions">
-            <button class="voice-btn" onclick="speakText('${text.replace(/'/g, "\\'")}')">🔊 Озвучить</button>
-        </div>
-    ` : '';
+        // Экранируем кавычки для data-text
+        const safeText = text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        const actionsHtml = !isUser ? `
+            <div class="message-actions">
+                <button class="voice-btn voice-start" data-text="${safeText}" onclick="speakText(this)">🔊 Озвучить</button>
+                <button class="voice-btn voice-stop" style="display:none;" onclick="stopSpeaking(this)">⏹️ Остановить</button>
+            </div>
+        ` : '';
 
-    div.innerHTML = `
-        <div class="message-content">${text}</div>
-        <div class="message-time">${timeStr}</div>
-        ${actionsHtml}
-    `;
-    messagesDiv.appendChild(div);
-    scrollToBottom();
-}
+        div.innerHTML = `
+            <div class="message-content">${text}</div>
+            <div class="message-time">${timeStr}</div>
+            ${actionsHtml}
+        `;
+        messagesDiv.appendChild(div);
+        scrollToBottom();
+    }
 
-function showTyping() {
-    const typing = document.createElement('div');
-    typing.className = 'typing-indicator';
-    typing.id = 'typing';
-    typing.textContent = 'Сонник думает…';
-    messagesDiv.appendChild(typing);
-    scrollToBottom();
-}
+    function showTyping() {
+        const typing = document.createElement('div');
+        typing.className = 'typing-indicator';
+        typing.id = 'typing';
+        typing.textContent = 'Сонник думает…';
+        messagesDiv.appendChild(typing);
+        scrollToBottom();
+    }
 
-function hideTyping() {
-    const typing = document.getElementById('typing');
-    if (typing) typing.remove();
-}
-
-    // PWA Install
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        const installHint = document.getElementById('install-hint');
-        if (installHint) installHint.style.display = 'block';
-    });
-
-    const installBtn = document.getElementById('install-btn');
-    if (installBtn) {
-        installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                deferredPrompt = null;
-                const installHint = document.getElementById('install-hint');
-                if (installHint) installHint.style.display = 'none';
-            }
-        });
+    function hideTyping() {
+        const typing = document.getElementById('typing');
+        if (typing) typing.remove();
     }
 
     // Очистка чата
@@ -576,14 +567,13 @@ function hideTyping() {
         showTyping();
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // Увеличиваем таймаут до 60 секунд
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
 
         try {
             const csrftoken = getCookie('csrftoken');
-            
             const res = await fetch('/api/message/', {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrftoken || ''
                 },
@@ -610,15 +600,10 @@ function hideTyping() {
                 } else if (res.status === 500) {
                     errorText = 'Ошибка на сервере. Попробуй позже.';
                 }
-                // Пытаемся получить текст ошибки от сервера
                 try {
                     const errorData = await res.json();
-                    if (errorData.reply) {
-                        errorText = errorData.reply;
-                    }
-                } catch (e) {
-                    // Игнорируем ошибку парсинга
-                }
+                    if (errorData.reply) errorText = errorData.reply;
+                } catch (e) {}
                 addMessage(errorText, false, new Date().toISOString());
                 console.error('Ошибка запроса:', res.status, res.statusText);
             }
@@ -640,7 +625,6 @@ function hideTyping() {
         }
     }
 
-    // Привязываем обработчики событий
     sendBtn.addEventListener('click', sendMessage);
     input.addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -651,7 +635,7 @@ function hideTyping() {
 
     scrollToBottom();
 
-    // ASR - Распознавание речи
+    // ASR — Распознавание речи
     let recognition = null;
     let isRecording = false;
 
@@ -705,41 +689,55 @@ function hideTyping() {
         });
     }
 
-    // TTS - Озвучивание текста (глобальная функция для использования в шаблоне)
-    window.speakText = function(text) {
-        if ('speechSynthesis' in window) {
-            // Останавливаем предыдущее озвучивание
-            window.speechSynthesis.cancel();
-            
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ru-RU';
-            utterance.rate = 0.9;
-            utterance.pitch = 1;
-            utterance.volume = 1;
-            
-            // Выбираем русский голос если доступен
-            const voices = window.speechSynthesis.getVoices();
-            const russianVoice = voices.find(voice => voice.lang.startsWith('ru'));
-            if (russianVoice) {
-                utterance.voice = russianVoice;
-            }
-            
-            window.speechSynthesis.speak(utterance);
-        } else {
+    // === TTS — Озвучка с остановкой ===
+    window.speakText = function(button) {
+        if (!('speechSynthesis' in window)) {
             alert('Озвучивание не поддерживается в вашем браузере.');
+            return;
         }
+
+        // Остановить предыдущую речь
+        window.speechSynthesis.cancel();
+
+        const text = button.getAttribute('data-text');
+        const startBtn = button;
+        const stopBtn = button.nextElementSibling;
+
+        startBtn.style.display = 'none';
+        stopBtn.style.display = 'inline-block';
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ru-RU';
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+
+        const voices = window.speechSynthesis.getVoices();
+        const russianVoice = voices.find(voice => voice.lang.startsWith('ru'));
+        if (russianVoice) utterance.voice = russianVoice;
+
+        utterance.onend = utterance.onerror = () => {
+            startBtn.style.display = 'inline-block';
+            stopBtn.style.display = 'none';
+        };
+
+        window.speechSynthesis.speak(utterance);
     };
 
-    // Загружаем голоса при загрузке страницы
-    if ('speechSynthesis' in window) {
-        window.speechSynthesis.onvoiceschanged = () => {
-            // Голоса загружены
-        };
-    }
-});
+    window.stopSpeaking = function(button) {
+        window.speechSynthesis.cancel();
+        const stopBtn = button;
+        const startBtn = button.previousElementSibling;
+        startBtn.style.display = 'inline-block';
+        stopBtn.style.display = 'none';
+    };
 
-// Обновление статуса премиума после активации (выполняется после загрузки DOM)
-document.addEventListener('DOMContentLoaded', function() {
+    // Загрузка голосов
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = () => {};
+    }
+
+    // Обновление премиума (оставлено без изменений)
     if (window.location.search.includes('premium=activated')) {
         const premiumBtn = document.getElementById('premium-btn');
         if (premiumBtn) {
@@ -747,7 +745,6 @@ document.addEventListener('DOMContentLoaded', function() {
             premiumBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
             premiumBtn.onclick = null;
             premiumBtn.href = '#';
-            // Показываем уведомление
             const notification = document.createElement('div');
             notification.style.cssText = `
                 position: fixed;
@@ -769,9 +766,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 notification.style.animation = 'slideUp 0.3s ease';
                 setTimeout(() => notification.remove(), 300);
             }, 3000);
+            window.history.replaceState({}, document.title, window.location.pathname);
         }
-        // Убираем параметр из URL
-        window.history.replaceState({}, document.title, window.location.pathname);
     }
 });
 </script>
