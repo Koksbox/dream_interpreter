@@ -148,7 +148,7 @@
             .nav-link {
                 font-size: 0.88rem;
                 padding: 8px 4px;
-                min-width: 48%; /* ≈ 2 в строку с учётом gap */
+                min-width: 48%;
                 flex: 1 1 48%;
             }
         }
@@ -343,129 +343,137 @@
         </div>
     </div>
 
-    <script>
-        const messagesDiv = document.getElementById('messages');
-        const input = document.getElementById('user-input');
-        const sendBtn = document.getElementById('send-btn');
+<script>
+const messagesDiv = document.getElementById('messages');
+const input = document.getElementById('user-input');
+const sendBtn = document.getElementById('send-btn');
 
-        function scrollToBottom() {
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
+function scrollToBottom() {
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
 
-        function addMessage(text, isUser, timestamp) {
-            const now = new Date(timestamp);
-            const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+function addMessage(text, isUser, timestamp) {
+    const now = new Date(timestamp);
+    const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
-            const div = document.createElement('div');
-            div.classList.add('message');
-            if (isUser) div.classList.add('user');
-            else div.classList.add('bot');
+    const div = document.createElement('div');
+    div.classList.add('message');
+    if (isUser) div.classList.add('user');
+    else div.classList.add('bot');
 
-            div.innerHTML = `
-                <div class="message-content">${text}</div>
-                <div class="message-time">${timeStr}</div>
-            `;
-            messagesDiv.appendChild(div);
-            scrollToBottom();
-        }
+    div.innerHTML = `
+        <div class="message-content">${text}</div>
+        <div class="message-time">${timeStr}</div>
+    `;
+    messagesDiv.appendChild(div);
+    scrollToBottom();
+}
 
-        function showTyping() {
-            const typing = document.createElement('div');
-            typing.className = 'typing-indicator';
-            typing.id = 'typing';
-            typing.textContent = 'Сонник думает…';
-            messagesDiv.appendChild(typing);
-            scrollToBottom();
-        }
+function showTyping() {
+    const typing = document.createElement('div');
+    typing.className = 'typing-indicator';
+    typing.id = 'typing';
+    typing.textContent = 'Сонник думает…';
+    messagesDiv.appendChild(typing);
+    scrollToBottom();
+}
 
-        function hideTyping() {
-            const typing = document.getElementById('typing');
-            if (typing) typing.remove();
-        }
+function hideTyping() {
+    const typing = document.getElementById('typing');
+    if (typing) typing.remove(); // ← ИСПРАВЛЕНО: было 'testing'
+}
 
-        document.getElementById('clear-btn').onclick = async () => {
-            if (!confirm('Очистить чат? Твоя история снов останется в разделе "История".')) return;
+// Обработчик отправки сообщения
+sendBtn.addEventListener('click', sendMessage);
+input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
 
-            const res = await fetch('/api/clear-chat/', {
-                method: 'POST',
-                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-            });
+async function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
 
-            if (res.ok) {
-                location.reload();
-            } else {
-                alert('Не удалось очистить чат');
-            }
-        };
+    input.value = '';
+    input.disabled = true;
+    sendBtn.disabled = true;
 
-        // Автоуведомление о новом дне
-        function isNewDay() {
-            const lastCleared = localStorage.getItem('chatClearedDate');
-            const today = new Date().toISOString().split('T')[0];
-            if (lastCleared !== today) {
-                localStorage.setItem('chatClearedDate', today);
-                return true;
-            }
-            return false;
-        }
+    // Добавляем сообщение пользователя
+    const userTime = new Date().toISOString();
+    addMessage(text, true, userTime);
 
-        if (isNewDay()) {
-            if (messagesDiv.children.length > 0) {
-                const notice = document.createElement('div');
-                notice.className = 'message bot';
-                notice.innerHTML = '<div class="message-content">✨ Доброе утро! Это новый день — чат обновлён.</div>';
-                messagesDiv.prepend(notice);
-                messagesDiv.scrollTop = 0;
-            }
-        }
+    showTyping();
 
-        async function sendMessage() {
-            const text = input.value.trim();
-            if (!text) return;
+    // Таймаут 10 секунд
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-            input.value = '';
-            input.disabled = true;
-            sendBtn.disabled = true;
-
-            const userTime = new Date().toISOString();
-            addMessage(text, true, userTime);
-
-            showTyping();
-
-            try {
-                const res = await fetch('/api/message/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text })
-                });
-
-                hideTyping();
-
-                if (res.ok) {
-                    const data = await res.json();
-                    addMessage(data.reply, false, data.bot_time);
-                } else {
-                    addMessage('Извини, я устал… Попробуй позже.', false, new Date().toISOString());
-                }
-            } catch (e) {
-                hideTyping();
-                addMessage('Ошибка соединения. Проверь интернет.', false, new Date().toISOString());
-            } finally {
-                input.disabled = false;
-                sendBtn.disabled = false;
-                input.focus();
-            }
-        }
-
-        sendBtn.addEventListener('click', sendMessage);
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
+    try {
+        const res = await fetch('/api/message/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text }),
+            signal: controller.signal
         });
 
-        scrollToBottom();
-    </script>
+        clearTimeout(timeoutId);
+        hideTyping();
+
+        if (res.ok) {
+            const data = await res.json();
+            addMessage(data.reply, false, data.bot_time);
+
+            // Кнопка Премиум
+            if (data.show_premium_button) {
+                const premiumBtn = document.createElement('div');
+                premiumBtn.innerHTML = `
+                    <div style="text-align:center; margin:16px 0;">
+                        <button id="premium-btn" style="
+                            background: linear-gradient(135deg, #f59e0b, #f97316);
+                            color: white;
+                            border: none;
+                            padding: 12px 24px;
+                            border-radius: 12px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+                        ">🔓 Купить Премиум — 299 ₽</button>
+                    </div>
+                `;
+                messagesDiv.appendChild(premiumBtn);
+                document.getElementById('premium-btn').onclick = () => {
+                    window.location.href = '/premium/checkout/';
+                };
+            }
+        } else {
+            // Обработка 429, 404 и других ошибок
+            hideTyping();
+            if (res.status === 429) {
+                addMessage('Слишком много запросов. Подожди 1–2 минуты.', false, new Date().toISOString());
+            } else if (res.status === 404) {
+                addMessage('Сервис временно недоступен. Пробуем другую модель...', false, new Date().toISOString());
+            } else {
+                addMessage('Ошибка сервера. Попробуй позже.', false, new Date().toISOString());
+            }
+        }
+    } catch (e) {
+        clearTimeout(timeoutId);
+        hideTyping();
+        if (e.name === 'AbortError') {
+            addMessage('Сервер не отвечает. Попробуй ещё раз.', false, new Date().toISOString());
+        } else {
+            addMessage('Ошибка соединения. Проверь интернет.', false, new Date().toISOString());
+        }
+    } finally {
+        input.disabled = false;
+        sendBtn.disabled = false;
+        input.focus();
+    }
+}
+
+scrollToBottom();
+</script>
 </body>
 </html>

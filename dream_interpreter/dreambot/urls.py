@@ -11,4 +11,6 @@ urlpatterns = [
     path('api/profile/', views.update_profile, name='update_profile'),
     path('guide/', views.guide_view, name='guide'),
     path('api/clear-chat/', views.clear_chat, name='clear_chat'),
+    path('premium/checkout/', views.premium_checkout, name='premium_checkout'),
+    path('robokassa/result/', views.robokassa_result, name='robokassa_result'),
 ]

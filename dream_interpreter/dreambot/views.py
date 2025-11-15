@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.db.models import Prefetch
 from django.utils import timezone
-
+from datetime import date
 
 # Системный промпт — психологический уклон
 SYSTEM_PROMPT = """
@@ -50,16 +50,13 @@ def chat_view(request):
         return redirect('landing')
 
     # Получаем или создаём активную сессию
-    session, created = DreamSession.objects.get_or_create(
-        user=request.user,
-        is_active=True,
-        defaults={'created_at': timezone.now()}
-    )
+    session = DreamSession.objects.filter(user=request.user, is_active=True).order_by('-created_at').first()
+    if not session:
+        session = DreamSession.objects.create(user=request.user, is_active=True)
 
-    # Если сегодня не дата создания сессии → начать новую (полночь)
-    if session.created_date != timezone.now().date():
-        session.is_active = False
-        session.save()
+    session_date = session.created_at.date()
+    if session.created_at.date() != timezone.now().date():
+        DreamSession.objects.filter(user=request.user, is_active=True).update(is_active=False)
         session = DreamSession.objects.create(user=request.user, is_active=True)
 
     messages = Message.objects.filter(session=session).order_by('created_at')
@@ -89,97 +86,92 @@ logger = logging.getLogger(__name__)
 
 
 def get_llm_response(user, user_message):
-    # Очистка API-ключа от всех возможных мусорных символов
-    raw_key = settings.OPENROUTER_API_KEY
-    # Оставляем только допустимые символы: буквы, цифры, дефис, подчёркивание
-    clean_key = re.sub(r'[^a-zA-Z0-9\-_]', '', raw_key.strip())
-
-    if not clean_key.startswith('sk-or-v1-'):
-        logger.error(f"Некорректный OPENROUTER_API_KEY: начало='{raw_key[:20]}...', очищено='{clean_key[:20]}'")
-        return "Сервис временно недоступен. Попробуй позже."
-
-    # --- остальной код без изменений до headers ---
-    past_messages = Message.objects.filter(
-        session__user=user
-    ).order_by('-created_at')[:10]
-
-    history = []
-    for msg in reversed(past_messages):
-        role = "user" if msg.is_user else "assistant"
-        history.append({"role": role, "content": msg.content})
-
-    full_context = history + [{"role": "user", "content": user_message}]
-
-    prompt_with_name = SYSTEM_PROMPT
+    # Формируем промпт вручную (Ollama не поддерживает messages[])
+    prompt = SYSTEM_PROMPT
     if user.name:
-        prompt_with_name += f"\nИмя пользователя: {user.name}"
-
-    messages_for_api = [{"role": "system", "content": prompt_with_name}] + full_context
+        prompt += f"\nИмя пользователя: {user.name}"
+    prompt += f"\n\nСон пользователя:\n{user_message}"
 
     try:
-        logger.info(f"Отправка запроса к LLM для {user.phone_number}")
-
         response = requests.post(
-            url="https://openrouter.ai/api/v1/chat/completions",
-            headers = {
-                "Authorization": f"Bearer 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",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "http://localhost:8077",
-                "X-Title": "DreamInterpreter",
-            },
-                json={
-                    "model": "qwen/qwen3-coder:free",
-                    "messages": messages_for_api,
-                    "temperature": 0.7,
-                    "max_tokens": 500,
+            "http://localhost:11434/api/generate",
+            json={
+                "model": "llama3.2:3b",
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.7
                 }
-            )
-
+            },
+            timeout=30
+        )
         response.raise_for_status()
         data = response.json()
-        reply = data['choices'][0]['message']['content'].strip()
-        logger.info(f"Получен ответ от LLM (длина: {len(reply)})")
-        return reply
-
+        return data["response"].strip()
     except Exception as e:
-        logger.error(f"Ошибка при запросе к LLM: {e}", exc_info=True)
+        logger.error(f"Ollama error: {e}")
         return "Извини, я сейчас устал… Расскажи ещё раз? 😊"
 
 
 
+from datetime import date
+
 @csrf_exempt
 def send_message(request):
     if not request.user.is_authenticated:
-        return JsonResponse({'error': 'Не авторизован'}, status=401)
+        return JsonResponse({'reply': 'Пожалуйста, войдите.'}, status=200)
     if request.method != "POST":
-        return JsonResponse({'error': 'Только POST'}, status=405)
+        return JsonResponse({'reply': 'Неверный метод.'}, status=200)
+
+    user = request.user
+    today = date.today()
+
+    # Сброс счётчика в новый день
+    if user.last_message_date != today:
+        user.last_message_date = today
+        user.free_messages_today = 0
+        user.save()
+
+    # Проверка лимита
+    if not user.is_premium and user.free_messages_today >= 5:
+        return JsonResponse({
+            'reply': (
+                "💫 Ты достиг(ла) лимита — 5 снов в день.\n\n"
+                "Хочешь неограниченный доступ к глубокой интерпретации, анализу повторяющихся символов и сохранению всей истории?\n\n"
+                "👉 Нажми кнопку ниже, чтобы разблокировать Премиум!"
+            ),
+            'show_premium_button': True
+        }, status=200)
 
     try:
         data = json.loads(request.body)
         text = data.get('text', '').strip()
         if not text:
-            return JsonResponse({'error': 'Пустое сообщение'}, status=400)
+            return JsonResponse({'reply': 'Пожалуйста, опиши сон.'}, status=200)
 
-        user = request.user
-        session, _ = DreamSession.objects.get_or_create(user=user)
+        # 🔥 Исправление: безопасное получение сессии
+        session = DreamSession.objects.filter(user=user, is_active=True).order_by('-created_at').first()
+        if not session:
+            session = DreamSession.objects.create(user=user, is_active=True)
 
-        # Сохраняем сообщение пользователя
         user_msg = Message.objects.create(session=session, is_user=True, content=text)
 
-        # Получаем ответ от LLM
-        bot_reply = get_llm_response(user, text)
+        if not user.is_premium:
+            user.free_messages_today += 1
+            user.save()
 
-        # Сохраняем ответ бота
+        bot_reply = get_llm_response(user, text)
         bot_msg = Message.objects.create(session=session, is_user=False, content=bot_reply)
 
-        # Возвращаем данные с временем
         return JsonResponse({
             'reply': bot_reply,
-            'user_time': user_msg.created_at.isoformat(),   # ← время пользователя
-            'bot_time': bot_msg.created_at.isoformat()      # ← время бота
+            'bot_time': bot_msg.created_at.isoformat()
         })
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        logger.error(f"Ошибка в send_message: {e}")
+        return JsonResponse({
+            'reply': 'Извини, я сейчас устал… Расскажи ещё раз? 😊'
+        }, status=200)
 
 
 
@@ -245,8 +237,70 @@ def history_view(request):
     sorted_history = sorted(history_by_date.items(), key=lambda x: x[0], reverse=True)
     return render(request, 'dreambot/history.html', {'history': sorted_history})
 
-    return render(request, 'dreambot/history.html', {'history': sorted_history})
-
 
 def guide_view(request):
     return render(request, 'dreambot/guide.html')
+
+
+import hashlib
+from django.conf import settings
+from django.shortcuts import redirect
+
+
+
+
+def premium_checkout(request):
+    if not request.user.is_authenticated:
+        return redirect('landing')
+
+    user = request.user
+    out_sum = 299.00
+    inv_id = f"premium_{user.id}_{int(time.time())}"
+    robokassa_login = settings.ROBOKASSA_LOGIN
+    robokassa_pass1 = settings.ROBOKASSA_PASS1
+
+    # Формирование цифровой подписи
+    signature = f"{robokassa_login}:{out_sum}:{inv_id}:{robokassa_pass1}"
+    signature = hashlib.md5(signature.encode('utf-8')).hexdigest().upper()
+
+    redirect_url = (
+        f"https://auth.robokassa.ru/Merchant/Index.aspx?"
+        f"MerchantLogin={robokassa_login}&"
+        f"OutSum={out_sum}&"
+        f"InvId={inv_id}&"
+        f"SignatureValue={signature}&"
+        f"Description=Премиум-доступ к ИИ-соннику&"
+        f"Culture=ru"
+    )
+    return redirect(redirect_url)
+
+
+@csrf_exempt
+def robokassa_result(request):
+    """Обработка уведомления от Robokassa"""
+    if request.method != 'POST':
+        return HttpResponse('fail')
+
+    # Получаем данные
+    inv_id = request.POST.get('InvId')
+    out_sum = request.POST.get('OutSum')
+    signature = request.POST.get('SignatureValue')
+    user_id = inv_id.split('_')[1]
+
+    # Проверка подписи
+    robokassa_pass2 = settings.ROBOKASSA_PASS2
+    my_signature = f"{out_sum}:{inv_id}:{robokassa_pass2}"
+    my_signature = hashlib.md5(my_signature.encode('utf-8')).hexdigest().upper()
+
+    if my_signature != signature:
+        return HttpResponse('fail')
+
+    # Активация премиума
+    try:
+        user = User.objects.get(id=user_id)
+        user.is_premium = True
+        user.save()
+    except User.DoesNotExist:
+        return HttpResponse('fail')
+
+    return HttpResponse('OK')

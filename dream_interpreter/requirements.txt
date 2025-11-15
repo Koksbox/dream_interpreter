@@ -3,3 +3,4 @@ python-decouple>=3.8
 requests>=2.31
 python-telegram-bot>=20.7
 python-decouple
+requests

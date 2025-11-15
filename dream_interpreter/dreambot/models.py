@@ -31,6 +31,15 @@ class User(AbstractBaseUser):
     is_superuser = models.BooleanField(default=False)
     telegram_id = models.CharField(max_length=50, blank=True, null=True, unique=True, verbose_name="Telegram ID")
 
+    # Премиум-статус
+    is_premium = models.BooleanField(default=False)
+    premium_until = models.DateTimeField(null=True, blank=True)  # для подписок (опционально)
+
+    # Счётчик бесплатных снов за сегодня
+    free_messages_today = models.IntegerField(default=0)
+    last_message_date = models.DateField(null=True, blank=True)
+
+
     objects = UserManager()
     USERNAME_FIELD = 'phone_number'
 

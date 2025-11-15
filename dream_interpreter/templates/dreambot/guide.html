@@ -53,6 +53,11 @@
             50% { opacity: 0.8; }
         }
 
+         .header {
+            text-align: center;
+            padding: 20px 0 20px 0;
+        }
+
         .container {
             max-width: 800px;
             width: 100%;
@@ -112,6 +117,25 @@
             font-style: italic;
         }
 
+        .chat-button {
+            display: inline-block;
+            margin: 0 auto 24px;
+            padding: 12px 28px;
+            background: linear-gradient(135deg, var(--accent), #a5b4fc);
+            color: white;
+            font-weight: 600;
+            font-size: 1.05rem;
+            text-decoration: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px var(--accent-glow);
+            transition: all 0.2s ease;
+        }
+
+        .chat-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--accent-glow);
+        }
+
         .back-link {
             display: inline-block;
             margin-top: 20px;
@@ -136,7 +160,11 @@
 <body>
     <div class="container">
         <div class="card">
+            <div class="header">
             <h1>🌙 Как пользоваться ИИ-сонником</h1>
+            <a href="{% url 'chat' %}" class="chat-button">← Вернуться в чат</a>
+            </div>
+
             <p>
                 Добро пожаловать! Этот сервис создан, чтобы помочь тебе понять, что твоё подсознание пытается сказать через сны.
                 Здесь <strong>нет гаданий, предсказаний и эзотерики</strong> — только психологический взгляд на твои переживания.
@@ -173,7 +201,6 @@
             <h2>4. Конфиденциальность</h2>
             <p>Твои сны видишь только ты и я. Все данные хранятся в защищённой базе и используются только для персонализации твоего опыта.</p>
 
-            <a href="{% url 'chat' %}" class="back-link">→ Перейти в чат</a>
         </div>
     </div>
 </body>

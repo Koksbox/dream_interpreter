@@ -10,8 +10,12 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
-OPENROUTER_API_KEY = config('OPENROUTER_API_KEY', default='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')
+OPENROUTER_API_KEY = config('OPENROUTER_API_KEY', default='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')
 TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN', default='8210635345:AAGKRadzTWU83Mtq6alWa2pwz8hRacLPYNE')
+
+ROBOKASSA_LOGIN = config('ROBOKASSA_LOGIN', default='')
+ROBOKASSA_PASS1 = config('ROBOKASSA_PASS1', default='')
+ROBOKASSA_PASS2 = config('ROBOKASSA_PASS2', default='')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
