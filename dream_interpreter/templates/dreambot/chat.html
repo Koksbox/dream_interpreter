@@ -353,7 +353,8 @@ function scrollToBottom() {
 }
 
 function addMessage(text, isUser, timestamp) {
-    const now = new Date(timestamp);
+    // Преобразуем строку в Date
+    const now = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
     const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
     const div = document.createElement('div');

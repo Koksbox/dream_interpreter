@@ -1,9 +1,32 @@
 import os
 from pathlib import Path
 from decouple import config
+import time
+import requests
+
+# Принудительная загрузка модели при старте
+try:
+    print("Загрузка модели qwen2:7b...")
+    response = requests.post(
+        "http://localhost:11434/api/generate",
+        json={
+            "model": "qwen2:7b",
+            "prompt": "Привет!",
+            "stream": False,
+            "options": {"temperature": 0.7}
+        },
+        timeout=60
+    )
+    print("Модель загружена.")
+except Exception as e:
+    print(f"⚠️ Не удалось загрузить модель: {e}")
+
+
+
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 SECRET_KEY = 'your-secret-key-here'  # Замени в продакшене!
 DEBUG = True
