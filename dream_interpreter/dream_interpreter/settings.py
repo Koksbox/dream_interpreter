@@ -28,9 +28,13 @@ except Exception as e:
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-SECRET_KEY = 'your-secret-key-here'  # Замени в продакшене!
+SECRET_KEY = 'your-secret-key-here' 
 DEBUG = True
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '152.114.192.9',
+    'localhost',
+    '127.0.0.1',
+]
 
 
 OPENROUTER_API_KEY = config('OPENROUTER_API_KEY', default='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')
@@ -104,5 +108,6 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
