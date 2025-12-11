@@ -49,5 +49,5 @@ python manage.py migrate
 -----Запустить сервер-----
 python manage.py runserver 8077
 
------Открыть в браузере-----
+-----Запустить тг-бот-----
 python run_telegram.py
