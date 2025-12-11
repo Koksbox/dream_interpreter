@@ -39,8 +39,8 @@ Ollama (https://ollama.com )
 pip install -r requirements.txt
 
 -----Загрузить и запустить модель в Ollama-----
-1. ollama pull llama3.2:3b
-2. ollama run qwen2:7b
+1. ollama pull llama3.2:3b (или другие модели, например: qwen2:7b )
+2. ollama run llama3.2:3b
 
 -----Применить миграции-----
 python manage.py makemigrations
